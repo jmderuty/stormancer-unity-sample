@@ -108,44 +108,9 @@ namespace Stormancer
             Instance.GameSessionPlugin = true;
         }
 
-        public static void ActivateServerClockPlugin()
-        {
-            Instance.ServerClockPlugin = true;
-        }
-
         public static void ActivateDebugLog()
         {
             Instance.DebugLog = true;
-        }
-
-        public static void ActivateTransactionBrokerPlugin()
-        {
-            Instance.TransactionBroker = true;
-        }
-
-        public static void ActivateLeaderboardPlugin()
-        {
-            Instance.LeaderboardPlugin = true;
-        }
-
-        public static void ActivateChatPlugin()
-        {
-            Instance.ChatPlugin = true;
-        }
-
-        public static void ActivateFriendsPlugin()
-        {
-            Instance.FriendsPlugin = true;
-        }
-
-        internal static void ActivateClientSettingsPlugin()
-        {
-            Instance.ClientSettingsPlugin = true;
-        }
-
-        internal static void ActivateGameVersionPlugin()
-        {
-            Instance.GameVersionPlugin = true;
         }
 
         public static event Action<string> OnDisconnected
@@ -218,17 +183,6 @@ namespace Stormancer
             {
                 get; set;
             }
-            public bool ServerClockPlugin { get; internal set; }
-            public bool TransactionBroker
-            {
-                get; set;
-            }
-            public bool LeaderboardPlugin { get; set; }
-            public bool ChatPlugin { get; set; }
-            public bool FriendsPlugin { get; internal set; }
-            public bool ClientSettingsPlugin { get; internal set; }
-            public bool GameVersionPlugin { get; internal set; }
-
 
             public Action<ClientConfiguration> OnClientConfiguration { get; set; }
 
@@ -374,34 +328,6 @@ namespace Stormancer
                 if (GameSessionPlugin)
                 {
                     config.Plugins.Add(new GameSessionPlugin());
-                }
-                if (TransactionBroker)
-                {
-                    config.Plugins.Add(new TransactionBrokerPlugin());
-                }
-                if (ServerClockPlugin)
-                {
-                    config.Plugins.Add(new ServerClockPlugin());
-                }
-                if (LeaderboardPlugin)
-                {
-                    config.Plugins.Add(new LeaderboardPlugin());
-                }
-                if (ChatPlugin)
-                {
-                    config.Plugins.Add(new ChatPlugin());
-                }
-                if (FriendsPlugin)
-                {
-                    config.Plugins.Add(new FriendsPlugin());
-                }
-                if (ClientSettingsPlugin)
-                {
-                    config.Plugins.Add(new ClientSettingsPlugin());
-                }
-                if (GameVersionPlugin)
-                {
-                    config.Plugins.Add(new GameVersionPlugin());
                 }
 
                 if (DebugLog)

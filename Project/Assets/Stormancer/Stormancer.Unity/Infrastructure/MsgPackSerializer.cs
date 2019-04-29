@@ -84,7 +84,7 @@ namespace Stormancer.Client45.Infrastructure
                 plugin.RegisterSerializerFactories(this);
             }
 
-            #region GeneratedSerializers	
+            #region GeneratedSerializers
 			RegisterSerializerFactory(ctx => new Stormancer_Cluster_Application_ConnectionDataSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Core_Infrastructure_Messages_SystemResponseSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Dto_ConnectionResultSerializer(ctx));
@@ -97,40 +97,22 @@ namespace Stormancer.Client45.Infrastructure
 			RegisterSerializerFactory(ctx => new Stormancer_P2PConnectToSceneMessageSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_P2PSessionSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_AuthParametersSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ChatMessageDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ChatUserInfoSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_EndGameDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_FieldFilterSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_FriendListStatusConfigSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_FriendListUpdateDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_FriendSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_FriendStatusSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameFinderRequestSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameFinderResponseDTOSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameResultSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameSessionResultSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LeaderboardOrderingSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LeaderboardQuerySerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LeaderboardRankingDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LeaderboardResultDtoSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LoginResultSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerDTOSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerProfileDTOSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerProfileSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerUpdateSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ProfileSummarySerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ReadinessSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ReadyVerificationRequestDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ScoreDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ScoreFilterSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ScoreFilterTypeSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ServerStartedMessageSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_SetResultSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_TeamDTOSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_TransactionCommandDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_UpdateDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_UpdateResponseDtoSerializer(ctx));
 			RegisterSerializerFactory(ctx => new System_Collections_Generic_KeyValuePair_2_System_String_System_Int32_Serializer(ctx));
 			RegisterSerializerFactory(ctx => new System_Collections_Generic_KeyValuePair_2_System_String_System_String_Serializer(ctx));
 			RegisterSerializerFactory(ctx => new System_Collections_Generic_KeyValuePair_2_System_String_System_UInt16_Serializer(ctx));
