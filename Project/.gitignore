@@ -1,0 +1,10 @@
+Temp/*
+Library/*
+Build/*
+obj/*
+.vs/
+*.sln
+*.csproj
+ProjectSettings/ProjectVersion.txt
+Assets/StreamingAssets/build_info.txt
+Assets/StreamingAssets/build_info.txt.meta
