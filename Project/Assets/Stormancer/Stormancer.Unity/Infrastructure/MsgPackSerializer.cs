@@ -84,7 +84,7 @@ namespace Stormancer.Client45.Infrastructure
                 plugin.RegisterSerializerFactories(this);
             }
 
-            #region GeneratedSerializers
+            #region GeneratedSerializers	
 			RegisterSerializerFactory(ctx => new Stormancer_Cluster_Application_ConnectionDataSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Core_Infrastructure_Messages_SystemResponseSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Dto_ConnectionResultSerializer(ctx));
@@ -103,6 +103,11 @@ namespace Stormancer.Client45.Infrastructure
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameResultSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameSessionResultSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LoginResultSerializer(ctx));
+			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PartyRequestDtoSerializer(ctx));
+			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PartySettingsDtoSerializer(ctx));
+			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PartyUserDataSerializer(ctx));
+			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PartyUserDtoSerializer(ctx));
+			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PartyUserStatusSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerDTOSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerProfileSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerSerializer(ctx));

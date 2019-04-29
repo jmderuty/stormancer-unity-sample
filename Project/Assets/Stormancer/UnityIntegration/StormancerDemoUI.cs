@@ -59,7 +59,7 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var auth = ClientProvider.GetService<Authentication>();
+            var auth = ClientProvider.GetService<AuthenticationService>();
             auth.OnGameConnectionStateChanged += CheckConnectionState;
             await auth.Login();
         }

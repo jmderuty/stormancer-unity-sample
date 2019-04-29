@@ -22,7 +22,7 @@ namespace Stormancer.Plugins
 
         private void ClientCreated(Client client)
         {
-            client.DependencyResolver.RegisterDependency<GameFinder>(new GameFinder(client.DependencyResolver.Resolve<Authentication>(), client.DependencyResolver.Resolve<ILogger>()));
+            client.DependencyResolver.RegisterDependency<GameFinder>(new GameFinder(client.DependencyResolver.Resolve<AuthenticationService>(), client.DependencyResolver.Resolve<ILogger>()));
         }
     }
 }

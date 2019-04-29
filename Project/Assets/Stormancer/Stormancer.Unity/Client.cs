@@ -130,7 +130,7 @@ namespace Stormancer
             this._metadata.Add("platform", "Unity");
             this._metadata.Add("protocol", "2");
 
-            var authenticationService = DependencyResolver.Resolve<Authentication>();
+            var authenticationService = DependencyResolver.Resolve<AuthenticationService>();
             if (authenticationService != null)
             {
                 authenticationService.OnGetAuthParameters = configuration.TaskGetAuthParameters;

@@ -1,5 +1,6 @@
 ﻿using Stormancer.Core;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using UniRx;
@@ -9,7 +10,7 @@ namespace Stormancer.Plugins
     public delegate void SceneBuilder(Scene scene);
     public delegate void ConnectionStateChanged(GameConnectionStateCtx gameConnectionStateCtx);
 
-    public class Authentication
+    public class AuthenticationService
     {
         private readonly Client _client;
         private readonly ILogger _logger;
@@ -22,8 +23,8 @@ namespace Stormancer.Plugins
         public string UserId { get; private set; }
         public string UserName { get; private set; }
 
-        private GameConnectionStateCtx _gameConnectionStateCtx 
-            = new GameConnectionStateCtx(GameConnectionState.Disconnected);
+        private GameConnectionStateCtx _gameConnectionStateCtx = new GameConnectionStateCtx(GameConnectionState.Disconnected);
+        private Dictionary<string, Func<OperationCtx, Task>> _operationHandlers = new Dictionary<string, Func<OperationCtx, Task>>();
 
         public GameConnectionState State
         {
@@ -41,7 +42,7 @@ namespace Stormancer.Plugins
 
         public ConnectionStateChanged OnGameConnectionStateChanged;
 
-        public Authentication(Client client)
+        public AuthenticationService(Client client)
         {
             this._client = client;
             _logger = _client.Logger;
@@ -71,6 +72,11 @@ namespace Stormancer.Plugins
                     _logger.Log(Diagnostics.LogLevel.Error, "authentication", "An error occurred while disconnecting authentication scene", exception);
                 }
             }
+        }
+
+        public void SetOperationHandler(string operation, Func<OperationCtx,Task> handler)
+        {
+            _operationHandlers.Add(operation, handler);
         }
 
         public async Task<Scene> ConnectToPrivateScene(string sceneId, SceneBuilder sceneBuilder)
@@ -151,9 +157,10 @@ namespace Stormancer.Plugins
             throw new NotImplementedException();
         }
 
-        public Task<TResult> SendRequestToUser<TResult>(string userId, string operation, CancellationToken cancellationToken, object[] args)
+        public async Task<TResult> SendRequestToUser<TResult>(string userId, string operation, CancellationToken cancellationToken, object[] args)
         {
-            throw new NotImplementedException();
+            var scene = await GetAuthenticationScene();
+            return await scene.RpcTask<object[], TResult>("sendRequest", args);
         }
 
         private async Task<Scene> LoginImpl(int retry)
@@ -183,6 +190,20 @@ namespace Stormancer.Plugins
                             default:
                                 break;
                         }
+                    });
+                    scene.AddProcedure("sendRequest", context =>
+                    {
+                        OperationCtx operationCtx = new OperationCtx(context);
+                        ISerializer serializer = scene.DependencyResolver.Resolve<ISerializer>();
+                        operationCtx.Operation = serializer.Deserialize<string>(context.InputStream);
+                        operationCtx.OriginId = serializer.Deserialize<string>(context.InputStream);
+
+                        Func<OperationCtx, Task> handle;
+                        if (!_operationHandlers.TryGetValue(operationCtx.OriginId, out handle))
+                        {
+                            throw new KeyNotFoundException("Operation handle not found");
+                        }
+                        return handle(operationCtx);
                     });
                 });
 

@@ -9,12 +9,12 @@ namespace Stormancer
     public abstract class ClientAPI<TManager>
     {
         private Scene _scene = null;
-        protected Authentication _auth = null;
+        protected AuthenticationService _auth = null;
         private IDisposable _sceneStatusChangedSubscription;
 
         private Action<ClientAPI<TManager>, Scene> _cleanupCallback = null;
 
-        public ClientAPI(Authentication authenticationService)
+        public ClientAPI(AuthenticationService authenticationService)
         {
             _auth = authenticationService;
         }

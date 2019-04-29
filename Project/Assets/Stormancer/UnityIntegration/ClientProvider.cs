@@ -103,6 +103,12 @@ namespace Stormancer
         {
             Instance.GameFinderPlugin = true;
         }
+
+        public static void ActivatePartyPlugin()
+        {
+            Instance.PartyPlugin = true;
+        }
+
         public static void ActivateGameSessionPlugin()
         {
             Instance.GameSessionPlugin = true;
@@ -179,10 +185,15 @@ namespace Stormancer
             {
                 get; set;
             }
+            public bool PartyPlugin
+            {
+                get; set;
+            }
             public bool GameSessionPlugin
             {
                 get; set;
             }
+
 
             public Action<ClientConfiguration> OnClientConfiguration { get; set; }
 
@@ -329,6 +340,10 @@ namespace Stormancer
                 {
                     config.Plugins.Add(new GameSessionPlugin());
                 }
+                if (PartyPlugin)
+                {
+                    config.Plugins.Add(new PartyPlugin());
+                }
 
                 if (DebugLog)
                 {
@@ -407,7 +422,7 @@ namespace Stormancer
 
             private async Task<Scene> GetAndConnectScene(string sceneId)
             {
-                var authenticationService = GetService<Authentication>();
+                var authenticationService = GetService<AuthenticationService>();
                 if (authenticationService != null)
                 {
                     return await authenticationService.ConnectToPrivateScene(sceneId, null); 

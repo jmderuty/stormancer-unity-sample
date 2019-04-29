@@ -10,7 +10,7 @@ namespace Stormancer.Plugins
 
         private void ClientCreated(Client client)
         {
-            var authenticationService = new Authentication(client);
+            var authenticationService = new AuthenticationService(client);
             client.DependencyResolver.RegisterDependency(authenticationService);
         }
     }

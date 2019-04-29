@@ -12,7 +12,7 @@ namespace Stormancer.Plugins
     {
         private ConcurrentDictionary<string, Task<GameFinderContainer>> _gameFinders = new ConcurrentDictionary<string, Task<GameFinderContainer>>();
         private ConcurrentDictionary<string, CancellationTokenSource> _pendingFindGameRequest = new ConcurrentDictionary<string, CancellationTokenSource>();
-        private Authentication _auth;
+        private AuthenticationService _auth;
         private ILogger _logger;
 
         public Action<GameFinderStatusChangedEvent> OnGameFinderStateChanged { get; set; }
@@ -20,7 +20,7 @@ namespace Stormancer.Plugins
         public Action<FindGameFailedEvent> OnFindGameFailed { get; set; }
 
 
-        public GameFinder(Authentication authenticationService, ILogger logger)
+        public GameFinder(AuthenticationService authenticationService, ILogger logger)
         {
             _auth = authenticationService;
             _logger = logger;
