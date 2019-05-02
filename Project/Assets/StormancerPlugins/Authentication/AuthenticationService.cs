@@ -112,7 +112,7 @@ namespace Stormancer.Plugins
             {
                 if (!_autoReconnect)
                 {
-                    throw new Exception("Authenticator disconnected. Call login before using the authenticationService.");
+                    throw new InvalidOperationException("Authenticator disconnected. Call login before using the authenticationService.");
                 }
                 else
                 {
@@ -191,7 +191,7 @@ namespace Stormancer.Plugins
         {
             if (OnGetAuthParameters == null)
             {
-                throw new Exception("'getCredentialsCallback' must be set before authentication.");
+                throw new InvalidOperationException("'getCredentialsCallback' must be set before authentication.");
             }
 
             try
@@ -239,7 +239,7 @@ namespace Stormancer.Plugins
                 {
                     _autoReconnect = false;
                     SetConnectionState(new GameConnectionStateCtx(GameConnectionState.Disconnected));
-                    throw new Exception("Login failed : " + result.ErrorMsg);
+                    throw new InvalidOperationException("Login failed : " + result.ErrorMsg);
                 }
                 else
                 {

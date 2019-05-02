@@ -24,7 +24,7 @@ namespace Stormancer
         {
             if (_connection == null)
             {
-                throw new Exception("Connection deleted.");
+                throw new InvalidOperationException("Connection deleted.");
             }
 
             Route r;

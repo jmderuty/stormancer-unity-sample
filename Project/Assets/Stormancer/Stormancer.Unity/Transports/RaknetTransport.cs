@@ -208,7 +208,7 @@ namespace Stormancer.Networking
                             _logger.Log(LogLevel.Trace, "RakNetTransport", "this IP address connected recently, and can't connect again as a security measure", packet.systemAddress.ToString(true, ':'));
                             break;
                         case (byte)DefaultMessageIDTypes.ID_UNCONNECTED_PONG:
-                            throw new Exception("Not implemented yet");
+                            throw new NotImplementedException();
 					    case (byte)DefaultMessageIDTypes.ID_UNCONNECTED_PING_OPEN_CONNECTIONS:
                             break;
 					    case (byte)DefaultMessageIDTypes.ID_ADVERTISE_SYSTEM:
@@ -343,7 +343,7 @@ namespace Stormancer.Networking
                 if (!pendingConnection.CancellationToken.IsCancellationRequested)
                 {
                     _logger.Log(LogLevel.Trace, "RakNetTransport", "Connection request failed", packetAddress);
-                    pendingConnection.Tcs.SetException(new Exception("Connection attempt failed"));
+                    pendingConnection.Tcs.SetException(new InvalidOperationException("Connection attempt failed"));
                 }
                 StartNextPendingConnections();
             }
@@ -538,7 +538,7 @@ namespace Stormancer.Networking
             _port = UInt16.Parse(portString);
             if (_port == 0)
             {
-                tcs.SetException(new Exception(($"Server endpoint port should not be 0 ({endpoint})")));
+                tcs.SetException(new InvalidOperationException(($"Server endpoint port should not be 0 ({endpoint})")));
                 return;
             }
 
@@ -546,14 +546,14 @@ namespace Stormancer.Networking
 
             if (_peer == null || !_peer.IsActive())
             {
-                tcs.SetException(new Exception("Transport not started. Make sure you started it."));
+                tcs.SetException(new InvalidOperationException("Transport not started. Make sure you started it."));
                 return;
             }
 
             var result = _peer.Connect(hostStr, _port, null, 0, null, 0, 12, 500, 30000);
             if (result != ConnectionAttemptResult.CONNECTION_ATTEMPT_STARTED)
             {
-                tcs.SetException(new Exception($"Bad RakNet connection attempt result ({result})"));
+                tcs.SetException(new InvalidOperationException($"Bad RakNet connection attempt result ({result})"));
                 return;
             }
         }

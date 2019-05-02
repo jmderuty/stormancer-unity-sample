@@ -41,7 +41,7 @@ namespace Stormancer
             }
             else
             {
-                return Task.FromException<IConnection>(new Exception($"Connection with id {id} already exists"));
+                return Task.FromException<IConnection>(new InvalidOperationException($"Connection with id {id} already exists"));
             }
         }
 

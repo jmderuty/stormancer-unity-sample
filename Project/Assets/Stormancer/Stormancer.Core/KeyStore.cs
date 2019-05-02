@@ -22,7 +22,7 @@ namespace Stormancer
             }
             else
             {
-                throw new Exception("Key not found");
+                throw new ArgumentOutOfRangeException("Key not found");
             }
         }
 

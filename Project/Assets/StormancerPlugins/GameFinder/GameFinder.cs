@@ -100,7 +100,7 @@ namespace Stormancer.Plugins
         {
             if (!_pendingFindGameRequest.TryAdd(gameFinder, new CancellationTokenSource()))
             {
-                throw new Exception($"A findGame request is already running for GameFinder '{gameFinder}'");
+                throw new InvalidOperationException($"A findGame request is already running for GameFinder '{gameFinder}'");
             }
             var cancellationToken = _pendingFindGameRequest[gameFinder].Token;
             var container = await GetGameFinderContainer(gameFinder);
@@ -176,7 +176,7 @@ namespace Stormancer.Plugins
         {
             if(_auth == null)
             {
-                throw new Exception("Authentication service destroyed");
+                throw new InvalidOperationException("Authentication service destroyed");
             }
             GameFinderContainer container = new GameFinderContainer();
             try
@@ -214,7 +214,7 @@ namespace Stormancer.Plugins
             }
             catch (System.Exception ex)
             {
-                throw new Exception($"Failed to connect to game finder. sceneName= {gameFinderName} reason= {ex.Message}");
+                throw new InvalidOperationException($"Failed to connect to game finder. sceneName= {gameFinderName} reason= {ex.Message}");
             }
             return container;
 

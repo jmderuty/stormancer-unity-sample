@@ -105,7 +105,7 @@ namespace Stormancer.Plugins
         {
             if(CurrentState != GameFinderStatus.Idle)
             {
-                throw new Exception("Already searching !");
+                throw new InvalidOperationException("Already searching !");
             }
 
             CurrentState = GameFinderStatus.Searching;

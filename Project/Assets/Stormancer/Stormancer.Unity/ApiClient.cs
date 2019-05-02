@@ -30,7 +30,7 @@ namespace Stormancer
             List<string> errors = new List<string>();
             if(baseUris.Count == 0)
             {
-                throw new Exception("No server endpoints found in configuration");
+                throw new ArgumentException("No server endpoints found in configuration");
             }
             if(_config.EndpointSelectionMode == EndpointSelectionMode.FALLBACK)
             {
@@ -48,7 +48,7 @@ namespace Stormancer
                 }
                 return await GetSceneEndpointImpl(baseUris2, errors, accountId, applicationName, sceneId, cancellationToken);
             }
-            throw new Exception("Error selecting server endpoint.");
+            throw new InvalidOperationException("Error selecting server endpoint.");
 
         }
 
@@ -61,7 +61,7 @@ namespace Stormancer
                 {
                     errorMessage += error;
                 }
-                throw new Exception("Failed to connect to the configured server endpoints : " + errorMessage);
+                throw new InvalidOperationException("Failed to connect to the configured server endpoints : " + errorMessage);
             }
             string baseUrl = endpoints[0];
             endpoints.RemoveAt(0);
@@ -107,7 +107,7 @@ namespace Stormancer
             }
             catch (Exception ex)
             {
-                throw new Exception("Can't get the scene endpoint response: " + ex.Message);
+                throw new InvalidOperationException("Can't get the scene endpoint response: " + ex.Message);
             }
 
         }
@@ -151,7 +151,7 @@ namespace Stormancer
             var errors = new List<string>();
             if(endpoints.Count == 0)
             {
-                throw new Exception("No server endpoints found in configuration.");
+                throw new ArgumentException("No server endpoints found in configuration.");
             }
 
             if(_config.EndpointSelectionMode == EndpointSelectionMode.FALLBACK)
@@ -171,7 +171,7 @@ namespace Stormancer
                 }
                 return await GetFederationImpl(baseUris, errors, cancellationToken);
             }
-            throw new Exception("Error selecting server endpoint.");
+            throw new InvalidOperationException("Error selecting server endpoint.");
         }
 
         private async Task<Federation> GetFederationImpl(List<string> endpoints, List<string> errors, CancellationToken cancellationToken)
@@ -183,7 +183,7 @@ namespace Stormancer
                 {
                     errorMsg += error;
                 }
-                throw new Exception("Failed to connect to the configured server endpoints : "+errorMsg);
+                throw new InvalidOperationException("Failed to connect to the configured server endpoints : "+errorMsg);
             }
 
             var baseUri = endpoints[0];
@@ -223,7 +223,7 @@ namespace Stormancer
             }
             catch (Exception ex)
             {
-                throw new Exception("Can't get the scene endpoint response: " + ex.Message);
+                throw new InvalidOperationException("Can't get the scene endpoint response: " + ex.Message);
             }
         }
 

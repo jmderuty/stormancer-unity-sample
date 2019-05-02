@@ -253,7 +253,7 @@ namespace Stormancer
 
             if(_client == null)
             {
-                throw new Exception("The client is deleted.");
+                throw new InvalidOperationException("The client is deleted.");
             }
 
             if (route[0] == '@')
@@ -271,7 +271,7 @@ namespace Stormancer
 
             if (_localRoutesMap.Keys.Contains(route))
             {
-                throw new Exception("A route already exists for this route name.");
+                throw new InvalidOperationException("A route already exists for this route name.");
             }
 
             Route routeObj;
@@ -333,12 +333,12 @@ namespace Stormancer
             if(_client == null)
             {
                 _logger.Error("SendPacket failed: Client deleted");
-                throw new Exception("Client deleted");
+                throw new InvalidOperationException("Client deleted");
             }
             if(_peer == null)
             {
                 _logger.Error("SendPacket failed: Peer deleted");
-                throw new Exception("Peer deleted");
+                throw new InvalidOperationException("Peer deleted");
             }
             if (route.Length == 0)
             {
@@ -412,12 +412,12 @@ namespace Stormancer
                 }
                 else
                 {
-                    throw new Exception("Client is deleted.");
+                    throw new InvalidOperationException("Client is deleted.");
                 }
             }
             else if(_connectionState.State == ConnectionState.Disconnecting)
             {
-                throw new Exception("Scene is disconnecting");
+                throw new InvalidOperationException("Scene is disconnecting");
             }
   
             _logger.Info("Successfully connected to scene : '{0}'.", Id);
@@ -440,12 +440,12 @@ namespace Stormancer
                 else
                 {
                     _logger.Log(LogLevel.Warn, "Scene", "Client is invalid");
-                    throw new Exception("Client is Invalid");
+                    throw new InvalidOperationException("Client is Invalid");
                 }
             }
             else if(_connectionState.State == ConnectionState.Connecting)
             {
-                throw new Exception("Client is Invalid");
+                throw new InvalidOperationException("Client is Invalid");
             }
 
             DependencyResolver.Resolve<ILogger>().Trace("Client disconnected from the server");

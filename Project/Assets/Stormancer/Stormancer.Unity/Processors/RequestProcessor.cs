@@ -324,7 +324,7 @@ namespace Stormancer.Networking.Processors
                 return request;
             }
             _logger.Error("Unable to create a new request: Too many pending requests.");
-            throw new Exception("Unable to create new request: Too many pending requests.");
+            throw new InvalidOperationException("Unable to create new request: Too many pending requests.");
         }
 
         public void AddSystemRequestHandler(byte msgId, Func<RequestContext, Task> handler)

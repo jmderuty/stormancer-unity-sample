@@ -283,7 +283,7 @@ namespace Stormancer
                 else
                 {
                     _logger.Log(Diagnostics.LogLevel.Error, "Client", "The scene is private");
-                    throw new Exception("The scene is private");
+                    throw new InvalidOperationException("The scene is private");
                 }
             }
             else
@@ -471,7 +471,7 @@ namespace Stormancer
             if(sceneToken.Length == 0)
             {
                 _logger.Log(Diagnostics.LogLevel.Error, "Client", "Empty scene token");
-                throw new Exception("Empty scene token");
+                throw new ArgumentException("Empty scene token");
             }
 
             SceneEndpoint sceneEndpoint = new SceneEndpoint();
@@ -519,7 +519,7 @@ namespace Stormancer
 
             if(scene.CurrentConnectionState.State != ConnectionState.Disconnected)
             {
-                throw new Exception("The scene is not in disconnected state.");
+                throw new InvalidOperationException("The scene is not in disconnected state.");
             }
 
             scene.SetConnectionState(new ConnectionStateCtx(ConnectionState.Connecting));
@@ -645,12 +645,12 @@ namespace Stormancer
         {
             if (scene == null)
             {
-                throw new Exception("Scene deleted");
+                throw new InvalidOperationException("Scene deleted");
             }
 
             if(scene.GetCurrentConnectionState() != ConnectionState.Connected)
             {
-                throw new Exception("The scene is not in connected state");
+                throw new InvalidOperationException("The scene is not in connected state");
             }
 
             var sceneId = scene.Address.toUri();
@@ -664,7 +664,7 @@ namespace Stormancer
             
             if(sceneDispatcher == null || _connections == null)
             {
-                throw new Exception("Client destroyed");
+                throw new InvalidOperationException("Client destroyed");
             }
             IConnection connection = _connections.GetConnection(scene.Host.Id);
             if(connection != null)
@@ -730,7 +730,7 @@ namespace Stormancer
                     string endpoint;
                     if(!sceneEndpoint.TokenData.Endpoints.TryGetValue(transport.Name, out endpoint))
                     {
-                        throw new Exception($"No transfport of type {transport.Name} available on this server");
+                        throw new IndexOutOfRangeException($"No transfport of type {transport.Name} available on this server");
                     }
                     _logger.Log(Diagnostics.LogLevel.Trace, "Client", "Connecting transport to server", endpoint);
                     var connection = await transport.Connect(endpoint, id, "", ct);
@@ -744,7 +744,7 @@ namespace Stormancer
                         var key = sceneEndpoint.TokenResponse.Encryption.Key;
                         if (key.Length != 256 / 8)
                         {
-                            throw new Exception("Unexpected key size. received " + key.Length * 8 + " bits expected 256 bits ");
+                            throw new InvalidOperationException("Unexpected key size. received " + key.Length * 8 + " bits expected 256 bits ");
                         }
                         keyStore.Keys.Add(connection.Id, Encoding.ASCII.GetBytes(key));
                     }
@@ -756,7 +756,7 @@ namespace Stormancer
                 }
                 catch (System.Exception ex)
                 {
-                    throw new Exception($"Failed to establish connection with {id} : {ex.Message}");
+                    throw new InvalidOperationException($"Failed to establish connection with {id} : {ex.Message}");
                 }
             });
         }
@@ -770,7 +770,7 @@ namespace Stormancer
         {
             if(peer == null)
             {
-                throw new Exception("Peer disconnected");
+                throw new InvalidOperationException("Peer disconnected");
             }
             var requestProcessor = DependencyResolver.Resolve<RequestProcessor>();
             Task<string> task;

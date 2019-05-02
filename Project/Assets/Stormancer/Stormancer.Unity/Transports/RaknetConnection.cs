@@ -234,12 +234,12 @@ namespace Stormancer.Networking
                 var result = _rakPeer.Send(stream.ToArray(), (int)dataSize, (RakNet.PacketPriority)priority, (RakNet.PacketReliability)reliability, (char)orderingChannel, _guid, false);
                 if(result == 0)
                 {
-                    throw new Exception("Raknet failed to send the message.");
+                    throw new InvalidOperationException("Raknet failed to send the message.");
                 }
             }
             else
             {
-                throw new Exception("RakPeer has been destroyed.");
+                throw new InvalidOperationException("RakPeer has been destroyed.");
             }
         }
 

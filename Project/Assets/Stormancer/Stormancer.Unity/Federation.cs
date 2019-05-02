@@ -31,7 +31,7 @@ namespace Stormancer
                     }
                 }
             }
-            throw new Exception($"Cluster {id} not found in federation.");
+            throw new ArgumentOutOfRangeException($"Cluster {id} not found in federation.");
         }
 
     }

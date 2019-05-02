@@ -39,7 +39,7 @@ namespace Stormancer
                 // This has to return a correct value
                 if(channelUid == -1)
                 {
-                    throw new Exception("No channelUid available.");
+                    throw new InvalidOperationException("No channelUid available.");
                 }
 
                 // Reserve the channelUid for this channelIdentifier
