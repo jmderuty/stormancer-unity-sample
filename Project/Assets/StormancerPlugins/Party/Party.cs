@@ -8,16 +8,18 @@ namespace Stormancer.Plugins
 {
     public class Party : ClientAPI<Party>
     {
-        private PartyInvitations _invitations;
+        private PartyInvitations _invitations = new PartyInvitations();
         private ILogger _logger;
         private GameFinder _gameFinder;
         private ISerializer _serializer;
         private string _uniqueOnlinePartyName;
         private Task<PartyContainer> _party;
 
+        public PartyInvitations Invitations => _invitations;
         public Action<PartySettings> OnPartySettingsUpdated;
         public Action<PartyUserDto[]> OnPartyMembersUpdated;
         public Action<PartyUserData> OnUserDataUpdated;
+        public Action<PartyInvitation[]> OnInvitationsUpdate;
         public Action OnPartyJoined;
         public Action OnPartyLeft;
         public Action OnPartyKicked;
@@ -34,22 +36,31 @@ namespace Stormancer.Plugins
         {
             _auth.SetOperationHandler("party.invite", context =>
             {
-                var senderId = context.OriginId;
-                var sceneId = _serializer.Deserialize<string>(context.RequestContext.InputStream);
-                var invitation = _invitations.ReceivePartyInvitation(senderId, sceneId);
                 TaskCompletionSource<Unit> tcs = new TaskCompletionSource<Unit>(context.RequestContext.CancellationToken);
-                invitation.OnAnswer += answer =>
+                MainThread.Post(() =>
                 {
-                    context.RequestContext.SendValue(steam => { }, Core.PacketPriority.MEDIUM_PRIORITY);
-                    tcs.SetResult(new Unit());
-                };
-                context.RequestContext.CancellationToken.Register(() =>
-                {
-                    tcs.TrySetCanceled();
-                    _invitations.RemovePartyInvitation(senderId);
+
+                    var senderId = context.OriginId;
+                    var sceneId = _serializer.Deserialize<string>(context.RequestContext.InputStream);
+                    var invitation = _invitations.ReceivePartyInvitation(senderId, sceneId);
+                    invitation.OnAnswer += answer =>
+                    {
+                        context.RequestContext.SendValue(steam => { }, Core.PacketPriority.MEDIUM_PRIORITY);
+                        tcs.SetResult(new Unit());
+                    };
+                    context.RequestContext.CancellationToken.Register(() =>
+                    {
+                        tcs.TrySetCanceled();
+                        _invitations.RemovePartyInvitation(senderId);
+                    });
                 });
                 return tcs.Task;
             });
+
+            _invitations.OnInvitationsUpdate += invitations =>
+            {
+                OnInvitationsUpdate?.Invoke(invitations);
+            };
         }
 
         public async Task<PartyContainer> CreateParty(PartyRequestDto partySettings)
@@ -75,8 +86,6 @@ namespace Stormancer.Plugins
                 await LeaveParty();
                 container = await GetPartySceneByOnlinePartyName(uniqueOnlinePartyName);
                 OnPartyJoined?.Invoke();
-                OnPartyMembersUpdated?.Invoke(container.Members);
-                OnPartySettingsUpdated?.Invoke(container.Settings);
             }
             catch (System.Exception ex)
             {
@@ -97,11 +106,8 @@ namespace Stormancer.Plugins
             PartyContainer container;
             try
             {
-                await LeaveParty();
                 container = await GetPartySceneByToken(connectionToken);
                 OnPartyJoined?.Invoke();
-                OnPartyMembersUpdated?.Invoke(container.Members);
-                OnPartySettingsUpdated?.Invoke(container.Settings);
             }
             catch (System.Exception ex)
             {
@@ -119,9 +125,12 @@ namespace Stormancer.Plugins
             {
                 _logger.Log(Diagnostics.LogLevel.Warn, "PartyManagement", "Client not connected on party");
             }
-            var container = await _party;
-            await container.PartyScene.Disconnect();
-            _party = null;
+            else
+            {
+                var container = await _party;
+                await container.PartyScene.Disconnect();
+                _party = null;
+            }
         }
 
         public async Task<PartyContainer> GetParty()
@@ -172,10 +181,9 @@ namespace Stormancer.Plugins
             CancellationTokenSource cts = new CancellationTokenSource();
 
             _invitations.SendPartyRequest(userId, cts);
-            await _auth.SendRequestToUser<bool>(userId, "party.invite", cts.Token, new object[]{ senderId, partyId});
+            await _auth.SendRequestToUser(userId, "party.invite", cts.Token, senderId, partyId);
             _invitations.CancelPartyRequest(userId);
         }
-
 
         private async Task<PartyContainer> GetPartySceneByOnlinePartyName(string uniqueOnlinePartyName)
         {
@@ -209,17 +217,16 @@ namespace Stormancer.Plugins
             {
                 OnPartyKicked?.Invoke();
             };
-            partyService.OnPartyKicked += () =>
-            {
-                OnPartyKicked?.Invoke();
-            };
             partyService.OnPartyLeft += async () =>
             {
-                var partyContainer = await _party;
-                var gameFinderName = partyContainer.Settings.GameFinderName;
-                _party = null;
-                await _gameFinder.DisconnectFromGameFinder(gameFinderName);
-                OnPartyLeft?.Invoke();
+                if(_party != null)
+                {
+                    var partyContainer = await _party;
+                    var gameFinderName = partyContainer.Settings.GameFinderName;
+                    _party = null;
+                    await _gameFinder.DisconnectFromGameFinder(gameFinderName);
+                    OnPartyLeft?.Invoke();
+                }
             };
             partyService.OnPartyMembersUpdated += members =>
             {

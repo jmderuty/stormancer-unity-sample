@@ -331,33 +331,19 @@ namespace Stormancer
 
         private async Task<U> SendSystemRequest<T, U>(IConnection connection, byte id, T parameter)
         {
-            try
+            var packet = await _requestProcessor.SendSystemRequest(connection, id, s =>
             {
-                var packet = await _requestProcessor.SendSystemRequest(connection, id, s =>
-                {
-                    _systemSerializer.Serialize(parameter, s);
-                });
-                return _systemSerializer.Deserialize<U>(packet.Stream);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("packet fail : " + ex);
-            }
+                _systemSerializer.Serialize(parameter, s);
+            });
+            return _systemSerializer.Deserialize<U>(packet.Stream);
         }
 
         private async Task SendSystemRequestVoid<T>(IConnection connection, byte id, T parameter)
         {
-            try
+            var packet = await _requestProcessor.SendSystemRequest(connection, id, s =>
             {
-                var packet = await _requestProcessor.SendSystemRequest(connection, id, s =>
-                {
-                    _systemSerializer.Serialize(parameter, s);
-                });
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("packet fail : " + ex);
-            }
+                _systemSerializer.Serialize(parameter, s);
+            });
         }
 
         private Task UpdateServerMetadata()
@@ -640,9 +626,16 @@ namespace Stormancer
 
         internal async Task Disconnect(Scene scene, byte sceneHandle)
         {
-            await this.SendSystemRequest<byte, Stormancer.Dto.Empty>(_serverConnection, (byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, sceneHandle);
-            this._scenesDispatcher.RemoveScene(sceneHandle);
-            _pluginCtx.SceneDisconnected?.Invoke(scene);
+            try
+            {
+                await this.SendSystemRequest<byte, Stormancer.Dto.Empty>(_serverConnection, (byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, sceneHandle);
+                this._scenesDispatcher.RemoveScene(sceneHandle);
+                _pluginCtx.SceneDisconnected?.Invoke(scene);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Log(LogLevel.Error, "Client", "An error occurred during Disconnect " + ex.Message);
+            }
 
         }
 

@@ -157,10 +157,34 @@ namespace Stormancer.Plugins
             throw new NotImplementedException();
         }
 
-        public async Task<TResult> SendRequestToUser<TResult>(string userId, string operation, CancellationToken cancellationToken, object[] args)
+        public async Task<TResult> SendRequestToUser<TData, TResult>(string userId, string operation, CancellationToken cancellationToken, params TData[] datas)
         {
             var scene = await GetAuthenticationScene();
-            return await scene.RpcTask<object[], TResult>("sendRequest", args);
+            var serializer = scene.DependencyResolver.Resolve<ISerializer>();
+            return await scene.RpcTask<TResult>("sendRequest", stream =>
+            {
+                serializer.Serialize(userId, stream);
+                serializer.Serialize(operation, stream);
+                foreach (var data in datas)
+                {
+                    serializer.Serialize(data, stream);
+                }
+            });
+        }
+
+        public async Task SendRequestToUser<TData>(string userId, string operation, CancellationToken cancellationToken, params TData[] datas)
+        {
+            var scene = await GetAuthenticationScene();
+            var serializer = scene.DependencyResolver.Resolve<ISerializer>();
+            await scene.RpcVoid("sendRequest", stream =>
+            {
+                serializer.Serialize(userId, stream);
+                serializer.Serialize(operation, stream);
+                foreach (var data in datas)
+                {
+                    serializer.Serialize(data, stream);
+                }
+            });
         }
 
         private async Task<Scene> LoginImpl(int retry)
@@ -199,7 +223,7 @@ namespace Stormancer.Plugins
                         operationCtx.OriginId = serializer.Deserialize<string>(context.InputStream);
 
                         Func<OperationCtx, Task> handle;
-                        if (!_operationHandlers.TryGetValue(operationCtx.OriginId, out handle))
+                        if (!_operationHandlers.TryGetValue(operationCtx.Operation, out handle))
                         {
                             throw new KeyNotFoundException("Operation handle not found");
                         }

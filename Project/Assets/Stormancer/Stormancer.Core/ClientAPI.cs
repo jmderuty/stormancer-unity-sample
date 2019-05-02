@@ -52,7 +52,7 @@ namespace Stormancer
 
             if (state == ConnectionState.Disconnected || state == ConnectionState.Disconnecting)
             {
-                _cleanupCallback(this, _scene);
+                _cleanupCallback?.Invoke(this, _scene);
                 RemoveCallbackStateChanged(_scene);
                 _scene = null;
             }

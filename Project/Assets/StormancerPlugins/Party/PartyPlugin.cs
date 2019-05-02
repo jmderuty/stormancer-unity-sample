@@ -38,7 +38,7 @@
                     var service = new Party(resolver.Resolve<AuthenticationService>(), resolver.Resolve<ILogger>(), resolver.Resolve<ISerializer>(), resolver.Resolve<GameFinder>());
                     service.Initialize();
                     return service;
-                });
+                }, true);
             }
         }
     }

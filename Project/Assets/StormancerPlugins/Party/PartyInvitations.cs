@@ -7,8 +7,9 @@ namespace Stormancer.Plugins
 {
     public class PartyInvitations
     {
-        private Dictionary<string, PartyInvitation> _partyInvitations;
-        private Dictionary<string, CancellationTokenSource> _partyRequests;
+        private Dictionary<string, PartyInvitation> _partyInvitations = new Dictionary<string, PartyInvitation>();
+        private Dictionary<string, CancellationTokenSource> _partyRequests = new Dictionary<string, CancellationTokenSource>();
+        public Action<PartyInvitation[]> OnInvitationsUpdate;
 
         public PartyInvitation ReceivePartyInvitation(string senderId, string sceneId)
         {
@@ -17,6 +18,7 @@ namespace Stormancer.Plugins
             if(!_partyInvitations.ContainsKey(senderId))
             {
                 _partyInvitations.Add(senderId, invitation);
+                OnInvitationsUpdate?.Invoke(_partyInvitations.Values.ToArray());
             }
             else
             {
@@ -30,6 +32,7 @@ namespace Stormancer.Plugins
             if(_partyInvitations.ContainsKey(senderId))
             {
                 _partyInvitations.Remove(senderId);
+                OnInvitationsUpdate?.Invoke(_partyInvitations.Values.ToArray());
             }
             else
             {
@@ -43,6 +46,8 @@ namespace Stormancer.Plugins
             {
                 _partyInvitations[senderId].OnAnswer?.Invoke(accept);
                 RemovePartyInvitation(senderId);
+                OnInvitationsUpdate?.Invoke(_partyInvitations.Values.ToArray());
+                
             }
             else
             {

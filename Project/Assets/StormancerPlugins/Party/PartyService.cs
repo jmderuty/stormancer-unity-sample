@@ -167,6 +167,7 @@ namespace Stormancer.Plugins
            
         private void SetNewLocalSettings(PartySettingsDto settingsDto)
         {
+            _settings = new PartySettings();
             _settings.GameFinderName = settingsDto.GameFinderName;
             _settings.LeaderId = settingsDto.LeaderId;
             _settings.CustomData = settingsDto.CustomData;

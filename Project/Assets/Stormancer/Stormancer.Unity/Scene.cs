@@ -429,7 +429,6 @@ namespace Stormancer
         /// <returns></returns>
         public async Task Disconnect()
         {
-            SetConnectionState(ConnectionState.Disconnecting);
             _logger.Log(LogLevel.Trace, "Scene", "Scene disconnecting");
             if(_connectionState.State == ConnectionState.Connected)
             {
