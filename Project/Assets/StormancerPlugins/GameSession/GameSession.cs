@@ -143,10 +143,21 @@ namespace Stormancer.Plugins
         /// <returns></returns>
         public async Task DisconnectFromGameSession()
         {
-            var container = await GetCurrentGameSession();
-            if (container != null && container.Service != null)
+            try
             {
-                await container.Service.Disconnect();
+                var container = await GetCurrentGameSession();
+                if (container != null && container.Service != null)
+                {
+                    await container.Service.Disconnect();
+                }
+            }
+            catch (Exception ex)
+            {
+                // we hide errors where we are not connected to scene as the goal of this method is to disconnect. This is to keep this method idempotent
+                if(ex.Message != "session.notConnectedToScene")
+                {
+                    _client.DependencyResolver.Resolve<ILogger>().Log(Diagnostics.LogLevel.Error, "GameSession", "An error occurred during DisconnectFromGameSession " + ex.Message);
+                }
             }
         }
 

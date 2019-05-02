@@ -626,17 +626,9 @@ namespace Stormancer
 
         internal async Task Disconnect(Scene scene, byte sceneHandle)
         {
-            try
-            {
-                await this.SendSystemRequest<byte, Stormancer.Dto.Empty>(_serverConnection, (byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, sceneHandle);
-                this._scenesDispatcher.RemoveScene(sceneHandle);
-                _pluginCtx.SceneDisconnected?.Invoke(scene);
-            }
-            catch (System.Exception ex)
-            {
-                _logger.Log(LogLevel.Error, "Client", "An error occurred during Disconnect " + ex.Message);
-            }
-
+            await this.SendSystemRequest<byte, Stormancer.Dto.Empty>(_serverConnection, (byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, sceneHandle);
+            this._scenesDispatcher.RemoveScene(sceneHandle);
+            _pluginCtx.SceneDisconnected?.Invoke(scene);
         }
 
         public async Task Disconnect(string sceneId, bool initiatedByServer, string reason)
