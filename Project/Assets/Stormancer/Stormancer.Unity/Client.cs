@@ -235,6 +235,8 @@ namespace Stormancer
             _scenesDispatcher = new Processors.SceneDispatcher();
             this._dispatcher.AddProcessor(_requestProcessor);
             this._dispatcher.AddProcessor(_scenesDispatcher);
+            DependencyResolver.RegisterDependency<SceneDispatcher>(_scenesDispatcher);
+
 
 #if UNITY_EDITOR
             IConnectionHandler temp = DependencyResolver.Resolve<IConnectionHandler>();
@@ -623,15 +625,7 @@ namespace Stormancer
             return scene;
         }
 
-
-        internal async Task Disconnect(Scene scene, byte sceneHandle)
-        {
-            await this.SendSystemRequest<byte, Stormancer.Dto.Empty>(_serverConnection, (byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, sceneHandle);
-            this._scenesDispatcher.RemoveScene(sceneHandle);
-            _pluginCtx.SceneDisconnected?.Invoke(scene);
-        }
-
-        public async Task Disconnect(string sceneId, bool initiatedByServer, string reason)
+        public async Task Disconnect(string sceneId, bool initiatedByServer, string reason = "")
         {
             ClientScene clientScene;
             if(_scenes.TryGetValue(sceneId, out clientScene))
@@ -641,7 +635,7 @@ namespace Stormancer
             }
         }
 
-        public async Task Disconnect(Scene scene, bool initiatedByServer, string reason)
+        public async Task Disconnect(Scene scene, bool initiatedByServer = false, string reason = "")
         {
             if (scene == null)
             {

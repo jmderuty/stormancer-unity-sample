@@ -434,7 +434,7 @@ namespace Stormancer
             {
                 if(_client != null)
                 {
-                    await _client.Disconnect(this, _handle);
+                    await _client.Disconnect(this);
                     
                 }
                 else
@@ -448,7 +448,7 @@ namespace Stormancer
                 throw new InvalidOperationException("Client is Invalid");
             }
 
-            DependencyResolver.Resolve<ILogger>().Trace("Client disconnected from the server");
+            DependencyResolver.Resolve<ILogger>().Trace("Client disconnected from the scene "+Id);
 
         }
 

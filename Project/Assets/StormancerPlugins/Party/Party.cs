@@ -130,9 +130,16 @@ namespace Stormancer.Plugins
             }
             else
             {
-                var container = await _party;
-                await container.PartyScene.Disconnect();
-                _party = null;
+                try
+                {
+                    var container = await _party;
+                    await container.PartyScene.Disconnect();
+                    _party = null;
+                }
+                catch (System.Exception ex)
+                {
+                	
+                }
             }
         }
 
