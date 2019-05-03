@@ -77,7 +77,6 @@ namespace Stormancer.Networking
         private RakPeerInterface _rakPeer;
         private RakNetGUID _guid;
 
-        private readonly Action<string> _closeAction;
         private Dictionary<string, string> _metadata = new Dictionary<string, string>();
         private ILogger _logger;
         private ConnectionStateCtx _connectionState;
@@ -188,7 +187,7 @@ namespace Stormancer.Networking
             if(_connectionState.State == Core.ConnectionState.Connected || _connectionState.State == Core.ConnectionState.Connecting)
             {
                 SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnecting, reason));
-                _closeAction?.Invoke(reason);
+                OnClose?.Invoke(reason);
                 SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnected, reason));
             }
         }

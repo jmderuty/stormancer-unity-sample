@@ -8,10 +8,10 @@ namespace Stormancer
 {
     public class ClientBehaviour : MonoBehaviour
     {
-        //private string AccountId = "virtual-regatta";
-        //private string ApplicationName = "dev-server";
-        private string AccountId = "unity";
-        private string ApplicationName = "dev";
+        private string AccountId = "virtual-regatta";
+        private string ApplicationName = "dev-server";
+        //private string AccountId = "unity";
+        //private string ApplicationName = "dev";
 
         private List<string> ServerEndpoints = new List<string>();
 
@@ -23,8 +23,8 @@ namespace Stormancer
 
         public void Awake()
         {
-            //ServerEndpoints.Add("http://gc3.stormancer.com");
-            ServerEndpoints.Add("http://192.168.2.103");
+            ServerEndpoints.Add("http://gc3.stormancer.com");
+            //ServerEndpoints.Add("http://192.168.2.103");
             DontDestroyOnLoad(gameObject);
             _provider = new RandomAuthenticationProvider();
             Initialize();
