@@ -217,6 +217,11 @@ public class PartyInvitationAnswer
         GameSession.PostResultCancellationSource?.Cancel();
         await gameSession.DisconnectFromGameSession();
         GameSession.OnSessionLeaved.Invoke();
+        var party = ClientProvider.GetService<Party>();
+        if (party.IsInParty)
+        {
+            Party.OnPartyJoined?.Invoke();
+        }
     }
 
     public void PostResult()
@@ -402,7 +407,7 @@ public class PartyInvitationAnswer
         {
             var party = ClientProvider.GetService<Party>();
             // this is to avoid status change when we leave the party and reset the toggle
-            if (party != null)
+            if (party.IsInParty)
             {
                 await party.UpdatePlayerStatus(ready ? PartyUserStatus.Ready : PartyUserStatus.NotReady);
             }

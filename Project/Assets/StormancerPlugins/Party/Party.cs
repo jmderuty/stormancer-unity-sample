@@ -16,6 +16,9 @@ namespace Stormancer.Plugins
         private Task<PartyContainer> _party;
 
         public PartyInvitations Invitations => _invitations;
+
+        public bool IsInParty => _party != null;
+
         public Action<PartySettings> OnPartySettingsUpdated;
         public Action<PartyUserDto[]> OnPartyMembersUpdated;
         public Action<PartyUserData> OnUserDataUpdated;
