@@ -19,6 +19,11 @@ namespace Stormancer.Processors
             config.AddCatchAllProcessor(Handler);
         }
 
+        private byte GetSceneIndex(byte sceneHandle)
+        {
+            return (byte)(sceneHandle - MessageIDTypes.ID_SCENES);
+        }
+
         private bool Handler(byte sceneHandle, Packet packet)
         {
             if (sceneHandle < (byte)MessageIDTypes.ID_SCENES)
@@ -53,6 +58,19 @@ namespace Stormancer.Processors
                     packet.Metadata["scene"] = scene;
                     scene.HandleMessage(packet);
                 }
+            }
+        }
+
+        public Scene GetScene(IConnection connection, byte sceneHandle)
+        {
+            var index = GetSceneIndex(sceneHandle);
+            if (index < _scenes.Length)
+            {
+                return _scenes[index];
+            }
+            else
+            {
+                return null;
             }
         }
 

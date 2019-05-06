@@ -386,12 +386,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2bf4ffbf24b23bf4788717ade75af2d7, type: 3}
---- !u!1 &2088989335 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1155188197, guid: b2141d7fb238f63438f54005f50df28f,
-    type: 3}
-  m_PrefabInstance: {fileID: 3849214151296277715}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &3849214151296277715
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -509,39 +503,9 @@ PrefabInstance:
       propertyPath: m_Pivot.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 5940004561216388516, guid: b2141d7fb238f63438f54005f50df28f,
+    - target: {fileID: 21086342467186159, guid: b2141d7fb238f63438f54005f50df28f,
         type: 3}
-      propertyPath: GameFinder.OnMatchFound.m_PersistentCalls.m_Calls.Array.size
-      value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 5940004561216388516, guid: b2141d7fb238f63438f54005f50df28f,
-        type: 3}
-      propertyPath: GameFinder.OnMatchFound.m_PersistentCalls.m_Calls.Array.data[4].m_Mode
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 5940004561216388516, guid: b2141d7fb238f63438f54005f50df28f,
-        type: 3}
-      propertyPath: GameFinder.OnMatchFound.m_PersistentCalls.m_Calls.Array.data[4].m_CallState
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 5940004561216388516, guid: b2141d7fb238f63438f54005f50df28f,
-        type: 3}
-      propertyPath: GameFinder.OnMatchFound.m_PersistentCalls.m_Calls.Array.data[4].m_Target
-      value: 
-      objectReference: {fileID: 2088989335}
-    - target: {fileID: 5940004561216388516, guid: b2141d7fb238f63438f54005f50df28f,
-        type: 3}
-      propertyPath: GameFinder.OnMatchFound.m_PersistentCalls.m_Calls.Array.data[4].m_MethodName
-      value: SetActive
-      objectReference: {fileID: 0}
-    - target: {fileID: 5940004561216388516, guid: b2141d7fb238f63438f54005f50df28f,
-        type: 3}
-      propertyPath: GameFinder.OnMatchFound.m_PersistentCalls.m_Calls.Array.data[4].m_Arguments.m_ObjectArgumentAssemblyTypeName
-      value: UnityEngine.Object, UnityEngine
-      objectReference: {fileID: 0}
-    - target: {fileID: 4544858967394095754, guid: b2141d7fb238f63438f54005f50df28f,
-        type: 3}
-      propertyPath: m_Interactable
+      propertyPath: m_AnchoredPosition.x
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

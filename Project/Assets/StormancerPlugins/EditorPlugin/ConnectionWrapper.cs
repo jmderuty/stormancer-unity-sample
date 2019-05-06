@@ -24,7 +24,8 @@ namespace Stormancer.Plugins
         public Action<string> OnClose { get { return Connection.OnClose; } set { Connection.OnClose = value; } }
         public string CloseReason { get { return Connection.CloseReason; } set { Connection.CloseReason = value; } }
         public int Ping { get { return Connection.Ping; } }
-        
+        public IDependencyResolver DependencyResolver => Connection.DependencyResolver;
+
         public void Close()
         {
             Connection.Close();

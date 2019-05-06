@@ -76,6 +76,8 @@ namespace Stormancer.Core
 
         string Key { get; }
 
+        IDependencyResolver DependencyResolver { get; }
+
         string CloseReason { get; set; }
 
         /// <summary>

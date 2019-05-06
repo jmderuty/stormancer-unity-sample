@@ -625,6 +625,15 @@ namespace Stormancer
             return scene;
         }
 
+        public async Task Disconnect(IConnection connection, byte sceneHandle, bool initiatedByServer, string reason)
+        {
+            var sceneDispatcher = DependencyResolver.Resolve<SceneDispatcher>();
+            var scene = sceneDispatcher.GetScene(connection, sceneHandle);
+
+            await Disconnect(scene, initiatedByServer, reason);
+        }
+
+
         public async Task Disconnect(string sceneId, bool initiatedByServer, string reason = "")
         {
             ClientScene clientScene;

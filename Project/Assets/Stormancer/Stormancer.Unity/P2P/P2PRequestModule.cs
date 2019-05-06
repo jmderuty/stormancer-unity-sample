@@ -54,10 +54,11 @@ namespace Stormancer
 
             builder.Service((byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, async context =>
             {
-                string sceneId = _serializer.Deserialize<string>(context.InputStream);
-                string reason = _serializer.Deserialize<string>(context.InputStream);
+                var sceneId = _serializer.Deserialize<string>(context.InputStream);
+                var reason = _serializer.Deserialize<string>(context.InputStream);
+                var sceneHandle = _serializer.Deserialize<byte>(context.InputStream);
 
-                await _client.Disconnect(sceneId, true, reason);
+                await _client.Disconnect(context.Packet.Connection, sceneHandle, true, reason);
 
             });
 

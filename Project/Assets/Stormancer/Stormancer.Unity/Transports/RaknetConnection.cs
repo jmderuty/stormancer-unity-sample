@@ -128,6 +128,8 @@ namespace Stormancer.Networking
             }
         }
 
+        public IDependencyResolver DependencyResolver => _dependencyResolver;
+
         /// <summary>
         /// The reason of the closure
         /// </summary>
