@@ -47,10 +47,11 @@ public class PartyPropertyHolder
     public UnityEvent OnPartyJoined;
 }
 [System.Serializable]
-public class PartyInvitationAnswer
+public class LeaderboardPropertyHolder
 {
-    public Text SenderIdText;
-    public bool Accept;
+    public Transform LeaderboardPanel;
+    public Button NextCursor;
+    public Button PreviousCursor;
 }
 
     public class StormancerDemoUI : MonoBehaviour
@@ -64,6 +65,9 @@ public class PartyInvitationAnswer
     public GameSessionPropertyHolder GameSession;
 
     public PartyPropertyHolder Party;
+    private bool _invitationVisible = false;
+
+    public LeaderboardPropertyHolder Leaderboard;
 
     private GameSessionResult _lastGameResult;
 
@@ -275,6 +279,37 @@ public class PartyInvitationAnswer
 
     #region Party
 
+    public void ToggleInvitationVisibility()
+    {
+        if(_invitationVisible)
+        {
+            HideInvitations();
+        }
+        else
+        {
+            ShowInvitations();
+        }
+    }
+
+    private void ShowInvitations()
+    {
+        _invitationVisible = true;
+        var animator = Party.PartyInvitationPanel.GetComponent<Animator>();
+        animator.SetBool("ShowInvitations", true);
+        var text = Party.PartyInvitationPanel.GetChild(4).GetComponentInChildren<Text>();
+        text.text = ">";
+    }
+
+    private void HideInvitations()
+    {
+        _invitationVisible = false;
+        var animator = Party.PartyInvitationPanel.GetComponent<Animator>();
+        animator.SetBool("ShowInvitations", false);
+        var text = Party.PartyInvitationPanel.GetChild(4).GetComponentInChildren<Text>();
+        text.text = "<";
+    }
+
+
     public void CreateParty()
     {
         _ = CreatePartyAsync();
@@ -339,7 +374,8 @@ public class PartyInvitationAnswer
 
     private void DisplayPartyInvitations(PartyInvitation[] invitations)
     {
-        for (int i = 0; i < Party.PartyInvitationPanel.childCount; i++)
+        ShowInvitations();
+        for (int i = 0; i < Party.PartyInvitationPanel.childCount-1; i++)
         {
             var child = Party.PartyInvitationPanel.GetChild(i);
             if(i < invitations.Length)
@@ -511,6 +547,11 @@ public class PartyInvitationAnswer
         party.OnInvitationsUpdate += DisplayPartyInvitations;
 
     }
+    #endregion
+
+    #region Leaderboard
+
+
     #endregion
 
 }
