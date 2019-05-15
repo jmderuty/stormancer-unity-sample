@@ -1,9 +1,10 @@
 ﻿using MsgPack.Serialization;
+using System;
 using System.Collections.Generic;
 
 namespace Stormancer.Plugins
 {
-    public enum ComparisonOperator
+    public enum ComparisonOperator : byte
     {
         GREATER_THAN_OR_EQUAL = 0,
         GREATER_THAN = 1,
@@ -11,7 +12,7 @@ namespace Stormancer.Plugins
         LESSER_THAN = 3
     }
 
-    public enum LeaderboardOrdering
+    public enum LeaderboardOrdering : byte
     {
         Ascending = 0,
         Descending = 1
@@ -21,86 +22,92 @@ namespace Stormancer.Plugins
     public class ScoreFilter
     {
         [MessagePackMember(0)]
-        public ComparisonOperator Type { get; }
+        public ComparisonOperator Type { get; set; }
 
-        [MessagePackMember(0)]
-        public int Value { get; }
+        [MessagePackMember(1)]
+        public int Value { get; set; }
     }
 
     [MsgPackDto]
     public class FieldFilter
     {
         [MessagePackMember(0)]
-        public string Field { get; }
+        public string Field { get; set; }
 
         [MessagePackMember(1)]
-        public List<string> Values { get; }
+        public List<string> Values { get; set; }
     }
 
     [MsgPackDto]
     public class LeaderboardQuery
     {
         [MessagePackMember(0)]
-        public string StartId { get; }
+        public string StartId { get; set; }
 
         [MessagePackMember(1)]
-        public List<ScoreFilter> ScoreFilters { get; } = new List<ScoreFilter>();
+        public List<ScoreFilter> ScoreFilters { get; set; }
 
         [MessagePackMember(2)]
-        public List<FieldFilter> FieldFilters { get; } = new List<FieldFilter>();
+        public List<FieldFilter> FieldFilters { get; set; }
 
         [MessagePackMember(3)]
-        public int Size { get; } = 1;
+        public int Size { get; set; } = 1;
 
         [MessagePackMember(4)]
-        public int Skip { get; } = 0;
+        public int Skip { get; set; } = 0;
 
         [MessagePackMember(5)]
-        public string LeaderboardName { get; }
+        public string LeaderboardName { get; set; }
 
         [MessagePackMember(6)]
-        public List<string> FriendsIds { get; } = new List<string>();
+        public List<string> FriendsIds { get; set; } = new List<string>();
 
         [MessagePackMember(7)]
-        public LeaderboardOrdering Order { get; } = LeaderboardOrdering.Descending;
+        public LeaderboardOrdering Order { get; set; } = LeaderboardOrdering.Descending;
     }
 
     [MsgPackDto]
     public class ScoreRecord
     {
         [MessagePackMember(0)]
-        public string Id { get; }
+        public string Id { get; set; }
 
         [MessagePackMember(1)]
-        public int Score { get; } = 0;
+        public int Score { get; set; } = 0;
 
         [MessagePackMember(2)]
-        public long CreatedOn { get; } = 0;
+        public long CreatedOn { get; set; } = 0;
 
         [MessagePackMember(3)]
-        public string Document { get; }
+        public string Document { get; set; }
     }
 
     [MsgPackDto]
     public class LeaderboardRanking
     {
         [MessagePackMember(0)]
-        public int Ranking { get; } = 0;
+        public int Ranking { get; set; }
 
         [MessagePackMember(1)]
-        public ScoreRecord ScoreRecord { get; }
+        public ScoreRecord ScoreRecord { get; set; }
     }
 
     [MsgPackDto]
     public class LeaderboardResult
     {
         [MessagePackMember(0)]
-        public List<LeaderboardRanking> Results { get; } = new List<LeaderboardRanking>();
+        public string LeaderboardName { get; set; } = "";
 
         [MessagePackMember(1)]
-        public string Next { get; }
+        public List<LeaderboardRanking> Results { get; set; } = new List<LeaderboardRanking>();
 
         [MessagePackMember(2)]
-        public string Previous { get; }
+        public string Next { get; set; } = "";
+
+        [MessagePackMember(3)]
+        public string Previous { get; set; } = "";
+
+        [MessagePackMember(4)]
+        public long Total { get; set; }
     }
 }

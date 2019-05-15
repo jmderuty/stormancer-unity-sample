@@ -1,4 +1,5 @@
 ﻿using Stormancer.Core;
+using Stormancer.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,6 +48,14 @@ namespace Stormancer.Networking
         /// <returns>A `Task&lt;IConnection&gt;` object completing with the connection process and returning the corresponding `IConnection`</returns>
         Task<IConnection> Connect(string endpoint, string id, string parentId, CancellationToken ct);
 
+        
+        /// <summary>
+        /// Connects the transport to a remote host.
+        /// </summary>
+        /// <param name="endpoint">a string containing the target endpoint the expected format is `host:port`</param>
+        /// <returns>A `Task&lt;IConnection&gt;` object completing with the connection process and returning the corresponding `IConnection`</returns>
+        Task<IConnection> Connect(string endpoint, string id, string parentId);
+
         /// <summary>
         /// Fires when the transport recieves new packets.
         /// </summary>
@@ -65,5 +74,15 @@ namespace Stormancer.Networking
         long? Id { get; }
 
         void Stop();
+
+        void OpenNat(string address);
+
+        Task<int> SendPing(string address, CancellationToken cancellationToken);
+
+        Task<int> SendPing(string address);
+
+        Task<int> SendPing(string address, int number, CancellationToken cancellationToken);
+
+        Task<int> SendPing(string address, int number);
     }
 }

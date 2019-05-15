@@ -73,7 +73,7 @@ namespace Stormancer
                 }
                 catch (System.Exception ex) when(!(ex is ObjectDisposedException))
                 {
-                    _logger.Error(ex);
+                    _logger.Log(Diagnostics.LogLevel.Error, "P2PTunnelClient", "An error occurred in Dispose : "+ ex.Message, ex);
                 }                
 
                 disposedValue = true;

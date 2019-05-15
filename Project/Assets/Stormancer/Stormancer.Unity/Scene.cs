@@ -365,11 +365,11 @@ namespace Stormancer
             int channelUid = 1;
             if(channelIdentifier.Length == 0)
             {
-                channelUid = _peer.Resolve<ChannelUidStore>().GetChannelUid($"Scene_{Id}_{route}");
+                channelUid = _peer.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid($"Scene_{Id}_{route}");
             }
             else
             {
-                channelUid = _peer.Resolve<ChannelUidStore>().GetChannelUid(channelIdentifier);
+                channelUid = _peer.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid(channelIdentifier);
             }
             Action<Stream> writer2 = (stream) =>
             {

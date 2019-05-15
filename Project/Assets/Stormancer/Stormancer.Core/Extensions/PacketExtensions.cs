@@ -43,7 +43,7 @@ namespace Stormancer
         }
         public static ISerializer Serializer(this IConnection c)
         {
-            return c.Resolve<ISerializer>();
+            return c.DependencyResolver.Resolve<ISerializer>();
         }
     }
 }

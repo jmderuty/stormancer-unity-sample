@@ -68,7 +68,7 @@ namespace Stormancer
             {
                 throw new InvalidOperationException("The route '" + routeName + "' doesn't exist on the scene");
             }
-            var channelUid = _connection.Resolve<ChannelUidStore>().GetChannelUid($"P2PScenePeer_{_scene.Id}_{routeName}");
+            var channelUid = _connection.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid($"P2PScenePeer_{_scene.Id}_{routeName}");
             _connection.SendSystem(stream => 
             {
                 stream.WriteByte(_handle);

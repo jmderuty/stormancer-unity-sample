@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Stormancer.Plugins;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-
 namespace Stormancer.Core
 {
     public class ConnectionStateCtx
@@ -37,21 +37,6 @@ namespace Stormancer.Core
         void SendSystem(Action<Stream> writer, int channelUid, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE_ORDERED, TransformMetadata transformMetadata = new TransformMetadata());
 
         /// <summary>
-        /// Sends a packet to the target remote scene.
-        /// </summary>
-        /// <param name="sceneIndex"></param>
-        /// <param name="route"></param>
-        /// <param name="writer"></param>
-        /// <param name="priority"></param>
-        /// <param name="reliability"></param>
-        /// <param name="channel"></param>
-        void SendToScene(byte sceneIndex,
-            ushort route,
-            Action<Stream> writer,
-            PacketPriority priority,
-            PacketReliability reliability);
-
-        /// <summary>
         /// Set the account id and the application name.
         /// </summary>
         /// <param name="account">The account id.</param>
@@ -78,8 +63,6 @@ namespace Stormancer.Core
 
         IDependencyResolver DependencyResolver { get; }
 
-        string CloseReason { get; set; }
-
         /// <summary>
         /// Unique id in the node for the connection.
         /// </summary>
@@ -104,19 +87,6 @@ namespace Stormancer.Core
         /// Metadata associated with the connection.
         /// </summary>
         Dictionary<string, string> Metadata { get; set; }
-
-        /// <summary>
-        /// Register components.
-        /// </summary>
-        void RegisterComponent<T>(T component);
-
-        /// <summary>
-        /// Gets a service from the object.
-        /// </summary>
-        /// <typeparam name="T">Type of the service to fetch.</typeparam>
-        /// <param name="key">A string containing the service key.</param>
-        /// <returns>A service object.</returns>
-        T Resolve<T>();
 
         IConnectionStatistics GetConnectionStatistics();
 

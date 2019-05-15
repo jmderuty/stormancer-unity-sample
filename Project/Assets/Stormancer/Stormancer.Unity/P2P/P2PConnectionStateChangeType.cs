@@ -1,7 +1,7 @@
 ﻿
 namespace Stormancer
 {
-    enum P2PConnectionStateChangeType
+    public enum P2PConnectionStateChangeType
     {
         Connecting,
 		Connected,
@@ -17,7 +17,7 @@ namespace Stormancer
 		Unknown,
 	};
 
-    enum EndpointCandidateType
+    public enum EndpointCandidateType
     {
         Nat,
 		Private,

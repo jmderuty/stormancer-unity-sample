@@ -133,8 +133,11 @@ namespace Stormancer.Networking.Processors
                 {
                     p.Metadata["request"] = request;
                     request.LastRefresh = DateTime.UtcNow;
-                    
-                    request.TCS.TrySetResult(p);
+                    if(!request.Complete)
+                    {
+                        request.Complete = true;
+                        request.TCS.TrySetResult(p);
+                    }
                 }
                 else
                 {
@@ -156,7 +159,11 @@ namespace Stormancer.Networking.Processors
                     if (this._pendingRequests.TryRemove(id, out request))
                     {
                         p.Metadata["request"] = request;
-                        request.TCS.TrySetResult(null);
+                        if(!request.Complete)
+                        {
+                            request.Complete = true;
+                            request.TCS.TrySetResult(null);
+                        }
                     }
                     else
                     {
@@ -178,26 +185,30 @@ namespace Stormancer.Networking.Processors
                 {
                     p.Metadata["request"] = request;
                     var serializer = p.Serializer();
-                    string msg;
-                    if(serializer != null)
+                    if(!request.Complete)
                     {
-                     msg = serializer.Deserialize<string>(p.Stream);
-                    }
-                    else
-                    {
-                        serializer = _serializer;
-                        try
+                        string msg;
+                        if(serializer != null)
                         {
                             msg = serializer.Deserialize<string>(p.Stream);
                         }
-                        catch (Exception)
+                        else
                         {
-                            msg = null;
-                        }
+                            serializer = _serializer;
+                            try
+                            {
+                                msg = serializer.Deserialize<string>(p.Stream);
+                            }
+                            catch (Exception)
+                            {
+                                msg = null;
+                            }
 
-                        msg = msg ?? "An error occurred on a Stormancer system request, and a serializer could not be found.";
+                            msg = msg ?? "An error occurred on a Stormancer system request, and a serializer could not be found.";
+                        }
+                        request.Complete = true;
+                        request.TCS.TrySetException(new ClientException(msg));
                     }
-                    request.TCS.TrySetException(new ClientException(msg));
                     
                 }
                 else

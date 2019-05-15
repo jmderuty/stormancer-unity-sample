@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Stormancer.Diagnostics;
+using Stormancer.Plugins;
 
 namespace Stormancer
 {
@@ -123,7 +124,7 @@ namespace Stormancer
                 catch (System.Exception ex)
                 {
                     _connectionsByKey.TryRemove(id, out _);
-                    _logger.Error(ex);
+                    _logger.Log(LogLevel.Error, "ConnectionRepository", "An error occurred during GetConnection : "+ ex.Message, ex);
                     throw ex;
                 }
             }

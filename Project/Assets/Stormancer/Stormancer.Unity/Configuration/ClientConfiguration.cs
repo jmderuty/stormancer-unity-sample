@@ -241,5 +241,8 @@ namespace Stormancer
 		/// Disable or enable nat punch through on client side.
 		/// </summary>
         public bool EnableNatPunchthrough { get; internal set; } = true;
+
+        public bool HasPublicIp => DedicatedServerEndpoint != "";
+        public string IpPort => DedicatedServerEndpoint + ":" + ServerGamePort;
     }
 }

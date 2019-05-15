@@ -22,7 +22,6 @@ namespace Stormancer.Plugins
         public string Key { get { return Connection.Key; } }
 
         public Action<string> OnClose { get { return Connection.OnClose; } set { Connection.OnClose = value; } }
-        public string CloseReason { get { return Connection.CloseReason; } set { Connection.CloseReason = value; } }
         public int Ping { get { return Connection.Ping; } }
         public IDependencyResolver DependencyResolver => Connection.DependencyResolver;
 
@@ -77,21 +76,6 @@ namespace Stormancer.Plugins
             return Connection.SetTimeout(timeout, token);
         }
 
-        public void SendToScene(byte sceneIndex, ushort route, Action<Stream> writer, PacketPriority priority, PacketReliability reliability)
-        {
-            Connection.SendToScene(sceneIndex, route, writer, priority, reliability);
-        }
-
-        public void RegisterComponent<T>(T component)
-        {
-            Connection.RegisterComponent(component);
-        }
-
-        public T Resolve<T>()
-        {
-            return Connection.Resolve<T>();
-        }
-
         public IConnectionStatistics GetConnectionStatistics()
         {
             return Connection.GetConnectionStatistics();
@@ -106,6 +90,11 @@ namespace Stormancer.Plugins
         {
             Connection = c;
             _plugin = plugin;
+        }
+
+        public ConnectionWrapper(IConnection connection)
+        {
+            Connection = connection;
         }
     }
 }

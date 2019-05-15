@@ -18,6 +18,18 @@ namespace Stormancer.Networking
 {
     public class RakNetTransport : ITransport
     {
+        private class PendingPing
+        {
+            public string Address { get; set; }
+            public TaskCompletionSource<bool> Tcs { get; set; }
+
+            public PendingPing(string address, TaskCompletionSource<bool> tcs)
+            {
+                Address = address;
+                Tcs = tcs;
+            }
+        }
+
         private IConnectionManager _handler;
         private RakPeerInterface _peer;
         private ILogger _logger;
@@ -25,6 +37,7 @@ namespace Stormancer.Networking
         private ushort _port = 0;
         private readonly ConcurrentDictionary<ulong, RakNetConnection> _connections = new ConcurrentDictionary<ulong, RakNetConnection>();
         private readonly ConcurrentDictionary<string, TaskCompletionSource<int>> _pendingPings = new ConcurrentDictionary<string, TaskCompletionSource<int>>();
+        private readonly ConcurrentQueue<PendingPing> _pendingPingsQueue = new ConcurrentQueue<PendingPing>();
         private readonly IConnectionHandler _connectionHandler;
         private IDependencyResolver _dependencyResolver;
 
@@ -69,7 +82,7 @@ namespace Stormancer.Networking
             }
             catch (Exception ex)
             {
-                _logger.Error(ex);
+                _logger.Log(LogLevel.Error, "RakNetTransport", "An error occurred during Run : "+ex.Message, ex);
                 throw;
             }
 
@@ -122,7 +135,7 @@ namespace Stormancer.Networking
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex);
+                    _logger.Log(LogLevel.Error, "RakNetTransport", "An error occurred during Run : "+ex.Message, ex);
                     throw;
                 }
                 startupResult = server.Startup(maxConnections, socketDescriptorList, 1);
@@ -483,7 +496,12 @@ namespace Stormancer.Networking
             get;
             set;
         }
-        
+
+        public async Task<IConnection> Connect(string endpoint, string id, string parentId)
+        {
+            return await Connect(endpoint, id, parentId, CancellationToken.None);
+        }
+
         public async Task<IConnection> Connect(string endpoint, string id, string parentId, CancellationToken ct)
         {
             var tcs = new TaskCompletionSource<IConnection>();
@@ -625,6 +643,86 @@ namespace Stormancer.Networking
                 }
             }
             return endpoints;
+        }
+
+        public async Task<int> SendPing(string address, int number, CancellationToken cancellationToken)
+        {
+            TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
+            if(!_pendingPings.TryAdd(address, tcs))
+            {
+                throw new InvalidOperationException($"Could not insert {address} into the pending pings");
+            }
+            var eventSetTask = tcs.Task;
+            CancellationTokenSource cts = cancellationToken.CanBeCanceled ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken) : new CancellationTokenSource();
+            List<Task<bool>> tasks = new List<Task<bool>>();
+            for(int i = 0; i < number; i++)
+            {
+
+                await Task.Delay(300 * i, cts.Token);
+                var task = SendPingImplTask(address);
+                tasks.Add(task);
+                await task;
+            }
+            var results = await Task.WhenAll(tasks);
+            cts.Token.ThrowIfCancellationRequested();
+            bool sent = false;
+            foreach(bool result in results)
+            {
+                if(result)
+                {
+                    sent = true;
+                    break;
+                }
+            }
+            if(!sent)
+            {
+                _logger.Log(LogLevel.Error, "RakNetTransport", $"Pings to {address} failed : unreachable address");
+                tcs.SetResult(-1);
+            }
+
+            try
+            {
+                var result = await tcs.Task.TimeOut(1500);
+                TaskCompletionSource<int> taskSource;
+                if(_pendingPings.TryRemove(address, out taskSource))
+                {
+                    taskSource.SetCanceled();
+                }
+                return result;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Log(LogLevel.Error, "RakNetTransport", $"Ping to {address} failed : {ex.Message}");
+                return -1;
+            }
+        }
+
+        private Task<bool> SendPingImplTask(string address)
+        {
+            TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
+            _pendingPingsQueue.Enqueue(new PendingPing(address, tcs));
+            return tcs.Task;
+        }
+
+        public async Task<int> SendPing(string address, CancellationToken cancellationToken)
+        {
+            return await SendPing(address, 2, cancellationToken);
+        }
+
+        public async Task<int> SendPing(string address)
+        {
+            return await SendPing(address, CancellationToken.None);
+        }
+
+        public async Task<int> SendPing(string address, int number)
+        {
+            return await SendPing(address, number, CancellationToken.None);
+        }
+
+        public void OpenNat(string address)
+        {
+            var els = address.Split(':');
+            _peer.SendTTL(els[0], Convert.ToUInt16(els[1]), 3);
         }
     }
 

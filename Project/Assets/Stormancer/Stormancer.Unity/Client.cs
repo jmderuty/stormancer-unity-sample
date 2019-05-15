@@ -224,6 +224,14 @@ namespace Stormancer
                 DependencyResolver.Resolve<ClientConfiguration>(),
                 this
             ));
+
+            DependencyResolver.RegisterDependency(new P2PPacketDispatcher(
+                DependencyResolver.Resolve<P2PTunnels>(),
+                DependencyResolver.Resolve<IConnectionManager>(),
+                DependencyResolver.Resolve<ILogger>(),
+                DependencyResolver.Resolve<ISerializer>()
+            ));
+
             _requestProcessor = DependencyResolver.Resolve<RequestProcessor>();
 
             // Initialize Request processor
@@ -234,6 +242,7 @@ namespace Stormancer
 
             _scenesDispatcher = new Processors.SceneDispatcher();
             this._dispatcher.AddProcessor(_requestProcessor);
+            this._dispatcher.AddProcessor(DependencyResolver.Resolve<P2PPacketDispatcher>());
             this._dispatcher.AddProcessor(_scenesDispatcher);
             DependencyResolver.RegisterDependency<SceneDispatcher>(_scenesDispatcher);
 
@@ -387,17 +396,17 @@ namespace Stormancer
             var parameter = new Stormancer.Dto.SceneInfosRequestDto { Metadata = _serverConnection.Metadata, Token = sceneEndpoint.Token };
             var result = await SendSystemRequest<Stormancer.Dto.SceneInfosRequestDto, Stormancer.Dto.SceneInfosDto>(_serverConnection, (byte)SystemRequestIDTypes.ID_GET_SCENE_INFOS, parameter);
             
-            if (_serverConnection.Resolve<ISerializer>() == null)
+            if (_serverConnection.DependencyResolver.Resolve<ISerializer>() == null)
             {
                 if (result.SelectedSerializer == null)
                 {
                     this._logger.Error("No serializer selected");
                     throw new InvalidOperationException("No serializer selected.");
                 }
-                _serverConnection.RegisterComponent(_serializers[result.SelectedSerializer]);
-                _serverConnection.Metadata["serializer"] = result.SelectedSerializer;
-                this._logger.Info("Serializer selected: " + result.SelectedSerializer);
+                _serverConnection.DependencyResolver.RegisterDependency(_serializers[result.SelectedSerializer]);
             }
+            _serverConnection.Metadata["serializer"] = result.SelectedSerializer;
+            this._logger.Info("Serializer selected: " + result.SelectedSerializer);
 
             await UpdateServerMetadata();
             
@@ -507,7 +516,7 @@ namespace Stormancer
                 catch (Exception ex)
                 {
                     _scenes.TryRemove(uSceneId, out _);
-                    _logger.Error(ex);
+                    _logger.Log(LogLevel.Error, "Client", "An error occurred during GetPrivateScene : "+ex.Message, ex);
                     throw ex;
                 }
                 sceneContainer.Task = Task.FromResult(scene);

@@ -8,23 +8,32 @@ namespace Stormancer
 {
     public class ClientBehaviour : MonoBehaviour
     {
-        private string AccountId = "virtual-regatta";
-        private string ApplicationName = "dev-server";
-        //private string AccountId = "unity";
-        //private string ApplicationName = "dev";
+        private string _accountId;
+        private string _applicationName;
 
-        private List<string> ServerEndpoints = new List<string>();
+        private List<string> _serverEndpoints = new List<string>();
 
-        private bool DebugLog = true;
-        
+        private bool _debugLog = true;
+        private bool _localServer = false; 
+
         public StringEvent OnDisconnected;
 
         private IAuthenticationProvider _provider;
 
         public void Awake()
         {
-            ServerEndpoints.Add("http://gc3.stormancer.com");
-            //ServerEndpoints.Add("http://192.168.2.103");
+            if(_localServer)
+            {
+                _accountId = "unity";
+                _applicationName = "dev";
+                _serverEndpoints.Add("http://192.168.2.103");
+            }
+            else
+            {
+                _accountId = "virtual-regatta";
+                _applicationName = "dev-server";
+                _serverEndpoints.Add("http://gc3.stormancer.com");
+            }
             DontDestroyOnLoad(gameObject);
             _provider = new RandomAuthenticationProvider();
             Initialize();
@@ -33,17 +42,17 @@ namespace Stormancer
 
         public void Initialize()
         {
-            ClientProvider.SetAccountId(AccountId);
-            ClientProvider.SetApplicationName(ApplicationName);
+            ClientProvider.SetAccountId(_accountId);
+            ClientProvider.SetApplicationName(_applicationName);
             _provider.Initialize();
             ClientProvider.OnRequestAuthParameters = _provider.GetAuthArgs();
 
-            if (ServerEndpoints.Any())
+            if (_serverEndpoints.Any())
             {
-                ClientProvider.SetServerEndpoint(ServerEndpoints);
+                ClientProvider.SetServerEndpoint(_serverEndpoints);
             }
 
-            if (DebugLog)
+            if (_debugLog)
             {
                 ClientProvider.ActivateDebugLog();
             }

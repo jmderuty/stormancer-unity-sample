@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UniRx;
 using Stormancer.Client45;
+using Stormancer.Plugins;
 
 namespace Stormancer.Networking
 {
@@ -106,7 +107,7 @@ namespace Stormancer.Networking
             };
             _connectionStateObservable.Subscribe(onNext, onError);
 
-            RegisterComponent<ChannelUidStore>(new ChannelUidStore());
+            DependencyResolver.RegisterDependency<ChannelUidStore>(new ChannelUidStore());
         }
 
         /// <summary>
@@ -357,36 +358,7 @@ namespace Stormancer.Networking
                 throw new InvalidOperationException("Failed to send message.");
             }
         }
-
-        /// <summary>
-        /// Sends a scene request to the remote peer.
-        /// </summary>
-        /// <param name="sceneIndex"></param>
-        /// <param name="route"></param>
-        /// <param name="writer"></param>
-        /// <param name="priority"></param>
-        /// <param name="reliability"></param>
-        /// <param name="channel"></param>
-        public void SendToScene(byte sceneIndex, ushort route, Action<System.IO.Stream> writer, Stormancer.Core.PacketPriority priority, Stormancer.Core.PacketReliability reliability)
-        {
-            if (writer == null)
-            {
-                throw new ArgumentNullException("writer");
-            }
-            var stream = new BitStream();
-            var s = new BSStream(stream);
-            s.WriteByte(sceneIndex);
-            s.Write(BitConverter.GetBytes(route), 0, 2);
-            writer(s);
-            var result = _rakPeer.Send(stream, (RakNet.PacketPriority)priority, (RakNet.PacketReliability)reliability, (char)0, this.Guid, false);
-
-            if (result == 0)
-            {
-                throw new InvalidOperationException("Failed to send message.");
-            }
-        }
-
-
+               
         public Action<string> OnClose
         {
             get;
@@ -395,24 +367,6 @@ namespace Stormancer.Networking
 
         private Dictionary<Type, object> _localData = new Dictionary<Type, object>();
 
-
-        public T Resolve<T>()
-        {
-            object result;
-            if (_localData.TryGetValue(typeof(T), out result))
-            {
-                return (T)result;
-            }
-            else
-            {
-                return default(T);
-            }
-        }
-
-        public void RegisterComponent<T>(T component)
-        {
-            _localData.Add(typeof(T), component);
-        }
 
         public IConnectionStatistics GetConnectionStatistics()
         {

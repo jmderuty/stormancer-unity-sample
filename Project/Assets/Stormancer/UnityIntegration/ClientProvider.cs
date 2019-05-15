@@ -25,6 +25,7 @@ namespace Stormancer
             }
         }
 
+
         public static Action<ClientConfiguration> OnClientConfiguration
         {
             get
@@ -114,6 +115,10 @@ namespace Stormancer
             Instance.GameSessionPlugin = true;
         }
 
+        public static void ActivateLeaderboardPlugin()
+        {
+            Instance.LeaderboardPlugin = true;
+        }
         public static void ActivateDebugLog()
         {
             Instance.DebugLog = true;
@@ -190,6 +195,10 @@ namespace Stormancer
                 get; set;
             }
             public bool GameSessionPlugin
+            {
+                get; set;
+            }
+            public bool LeaderboardPlugin
             {
                 get; set;
             }
@@ -339,6 +348,10 @@ namespace Stormancer
                 if (GameSessionPlugin)
                 {
                     config.Plugins.Add(new GameSessionPlugin());
+                }
+                if (LeaderboardPlugin)
+                {
+                    config.Plugins.Add(new LeaderboardPlugin());
                 }
                 if (PartyPlugin)
                 {

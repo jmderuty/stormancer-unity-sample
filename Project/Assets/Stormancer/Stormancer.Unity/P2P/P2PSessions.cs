@@ -7,14 +7,14 @@ namespace Stormancer
     public class P2PSessions
     {
         private IConnectionManager _connections;
-        private ConcurrentDictionary<byte[], P2PSession> _sessions = new ConcurrentDictionary<byte[], P2PSession>();
+        private ConcurrentDictionary<P2PSessionId, P2PSession> _sessions = new ConcurrentDictionary<P2PSessionId, P2PSession>();
 
         public P2PSessions(IConnectionManager connections)
         {
             _connections = connections;
         }
 
-        public void UpdateSessionState(byte[] sessionId, P2PSessionState sessionState)
+        public void UpdateSessionState(P2PSessionId sessionId, P2PSessionState sessionState)
         {
             P2PSession session;
             if (_sessions.TryGetValue(sessionId, out session))
@@ -23,7 +23,7 @@ namespace Stormancer
             }
         }
 
-        public void CreateSession(byte[] sessionId, P2PSession session)
+        public void CreateSession(P2PSessionId sessionId, P2PSession session)
         {
             if(!_sessions.TryAdd(sessionId, session))
             {
@@ -31,7 +31,7 @@ namespace Stormancer
             }
         }
 
-        public bool CloseSession(byte[] sessionId)
+        public bool CloseSession(P2PSessionId sessionId)
         {
             P2PSession session;
             if (!_sessions.TryRemove(sessionId, out session))

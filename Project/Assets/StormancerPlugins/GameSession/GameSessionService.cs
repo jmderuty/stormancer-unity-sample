@@ -100,11 +100,11 @@ namespace Stormancer.Plugins
                 throw new InvalidOperationException("Already received P2P token");
             }
             _receivedP2PToken = true;
-            if(p2pToken.Length == 0)
+            if(p2pToken == null)
             {
                 _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "received empty p2p token : I'm the host.");
                 OnRoleReceived?.Invoke("HOST");
-                _tunnel = _scene.RegisterP2PServer(GAMESESSION_P2P_SERVER_ID);
+                _tunnel = _scene.RegisterP2PServer(GAMESESSION_P2P_SERVER_ID); 
             }
             else
             {
@@ -124,10 +124,10 @@ namespace Stormancer.Plugins
                         throw new InvalidOperationException("Service destroyed");
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (!(ex is OperationCanceledException))
                 {
                     OnConnectionFailure?.Invoke(ex.Message);
-                    _logger.Error(ex);
+                    _logger.Log(Diagnostics.LogLevel.Error, "GameSessionService", "An error occured in InitializeTunnel : "+ex.Message, ex);
                     throw;
                 }
             }

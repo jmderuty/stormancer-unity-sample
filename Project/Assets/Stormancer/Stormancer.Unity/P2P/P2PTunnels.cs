@@ -8,6 +8,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Net;
 
 namespace Stormancer
 {
@@ -163,6 +164,25 @@ namespace Stormancer
             }
         }
 
+        public void ReceivedFrom(ulong id, Stream stream)
+        {
+            byte handle = (byte)stream.ReadByte();
+            var buffer = new byte[1464];
+            var read = stream.Read(buffer, 1, (int)stream.Length - 1);
+            P2PTunnelClient client;
+            if(_tunnels.TryGetValue((id, handle), out client))
+            {
+                if(client != null)
+                {
+                    client.Client.Send(buffer, read, new IPEndPoint(IPAddress.Parse("127.0.0.1"), client.HostPort));
+                }
+                else
+                {
+                    _tunnels.TryRemove((id, handle), out client);
+                }
+            }
+        }
+
         public void OnMessageReceived(P2PTunnelClient client, UdpReceiveResult message)
         {
             var connection = _connections.GetConnection(client.PeerId);
@@ -172,7 +192,7 @@ namespace Stormancer
                 {
                     client.HostPort = message.RemoteEndPoint.Port;
                 }
-                int channelUid = connection.Resolve<ChannelUidStore>().GetChannelUid("P2PTunnels_" + connection.Id);
+                int channelUid = connection.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid("P2PTunnels_" + connection.Id);
                 connection.SendSystem(stream =>
                 {
                     stream.WriteByte((byte)MessageIDTypes.ID_P2P_TUNNEL);

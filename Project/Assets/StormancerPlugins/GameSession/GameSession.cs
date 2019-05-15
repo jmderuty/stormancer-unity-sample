@@ -55,9 +55,10 @@ namespace Stormancer.Plugins
                     await service.InitializeTunnel(p2pToken, cancellationToken);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is OperationCanceledException))
             {
-                throw new InvalidOperationException("Cannot get p2pToken", ex);
+                logger.Log(Diagnostics.LogLevel.Error, "GameSession", "An error occurred during EstablishDirectConnection : " + ex.Message, ex);
+                throw;
             }
             GameSessionConnectionParameters connectionParameters = new GameSessionConnectionParameters();
 
@@ -151,13 +152,8 @@ namespace Stormancer.Plugins
                     await container.Service.Disconnect();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // we hide errors where we are not connected to scene as the goal of this method is to disconnect. This is to keep this method idempotent
-                if(ex.Message != "session.notConnectedToScene")
-                {
-                    _client.DependencyResolver.Resolve<ILogger>().Log(Diagnostics.LogLevel.Error, "GameSession", "An error occurred during DisconnectFromGameSession " + ex.Message);
-                }
             }
         }
 
@@ -190,13 +186,13 @@ namespace Stormancer.Plugins
 
             container.Service.OnRoleReceived += (role) =>
             {
-                if (role == "HOST")
+                GameSessionConnectionParameters parameters = new GameSessionConnectionParameters();
+                parameters.IsHost = (role == "HOST"); 
+                if(parameters.IsHost)
                 {
-                    GameSessionConnectionParameters parameters = new GameSessionConnectionParameters();
-                    parameters.IsHost = true;
-                    OnRoleReceived?.Invoke(parameters);
                     sessionReadyTcs.SetResult(parameters);
                 }
+                OnRoleReceived?.Invoke(parameters);
             };
 
             container.Service.OnTunnelOpened += (p2pTunnel) =>
@@ -204,7 +200,7 @@ namespace Stormancer.Plugins
                 GameSessionConnectionParameters parameters = new GameSessionConnectionParameters();
                 parameters.IsHost = false;
                 parameters.Endpoint = p2pTunnel.Ip + ":" + p2pTunnel.Port;
-                OnTunnelOpened(parameters);
+                OnTunnelOpened?.Invoke(parameters);
                 sessionReadyTcs.SetResult(parameters);
             };
 

@@ -61,7 +61,7 @@ namespace Stormancer.Core
         public T Connection
         {
             get;
-            private set;
+            set;
         }
     }
 

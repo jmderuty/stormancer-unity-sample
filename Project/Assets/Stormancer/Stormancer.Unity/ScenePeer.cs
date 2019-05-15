@@ -33,7 +33,7 @@ namespace Stormancer
                 throw new ArgumentException(string.Format("The route '{0}' is not declared on the server.", route));
             }
             string channelName = $"ScenePeer_{Id}_{route}";
-            int channelUid = _connection.Resolve<ChannelUidStore>().GetChannelUid(channelName);
+            int channelUid = _connection.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid(channelName);
             _connection.SendSystem(writer, 0, priority, reliability);
         }
 
@@ -55,7 +55,7 @@ namespace Stormancer
             object result;
             if (!_components.TryGetValue(typeof(T), out result))
             {
-                return _connection.Resolve<T>();
+                return _connection.DependencyResolver.Resolve<T>();
             }
             return default(T);
         }
