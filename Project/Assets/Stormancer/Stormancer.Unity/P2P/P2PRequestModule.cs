@@ -6,6 +6,7 @@ using System.Text;
 using Stormancer.Diagnostics;
 using Stormancer.Core;
 using Stormancer.Plugins;
+using System.Threading.Tasks;
 
 namespace Stormancer
 {
@@ -34,14 +35,14 @@ namespace Stormancer
 
         public void RegisterModule(RequestModuleBuilder builder)
         {
-            builder.Service((byte)SystemRequestIDTypes.ID_P2P_GATHER_IP, async context =>
+            builder.Service((byte)SystemRequestIDTypes.ID_P2P_GATHER_IP, context =>
             {
                 List<string> endpoints = new List<string>();
-                if(_config.DedicatedServerEndpoint != "")
+                if (!string.IsNullOrEmpty(_config.DedicatedServerEndpoint))
                 {
                     endpoints.Add(_config.DedicatedServerEndpoint + ":" + _config.ClientSDKPort);
                 }
-                else if(!_config.EnableNatPunchthrough)
+                else if (!_config.EnableNatPunchthrough)
                 {
                     endpoints.Clear();
                 }
@@ -53,6 +54,7 @@ namespace Stormancer
                 {
                     _serializer.Serialize(endpoints, stream);
                 });
+                return Task.CompletedTask;
             });
 
             builder.Service((byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, async context =>
@@ -65,7 +67,7 @@ namespace Stormancer
 
             });
 
-            builder.Service((byte)SystemRequestIDTypes.ID_P2P_CREATE_SESSION, async context =>
+            builder.Service((byte)SystemRequestIDTypes.ID_P2P_CREATE_SESSION, context =>
             {
                 var sessionId = _serializer.Deserialize<byte[]>(context.InputStream);
                 var peerId = _serializer.Deserialize<ulong>(context.InputStream);
@@ -76,13 +78,15 @@ namespace Stormancer
                 session.RemotePeer = peerId;
                 _sessions.CreateSession(P2PSessionId.From(sessionId), session);
                 context.Send(stream => { });
+                return Task.CompletedTask;
             });
 
-            builder.Service((byte)SystemRequestIDTypes.ID_P2P_CLOSE_SESSION, async context =>
+            builder.Service((byte)SystemRequestIDTypes.ID_P2P_CLOSE_SESSION, context =>
             {
                 var sessionId = _serializer.Deserialize<byte[]>(context.InputStream);
                 _sessions.CloseSession(P2PSessionId.From(sessionId));
                 context.Send(stream => { });
+                return Task.CompletedTask;
             });
 
             builder.Service((byte)SystemRequestIDTypes.ID_P2P_TEST_CONNECTIVITY_CLIENT, async context =>
@@ -92,7 +96,7 @@ namespace Stormancer
                 _logger.Log(LogLevel.Debug, "p2p", "Starting connectivity test (CLIENT) ");
 
                 var connection = _connections.GetConnection(candidate.ListeningPeer);
-                if(connection != null && connection.GetConnectionState().State == ConnectionState.Connected)
+                if (connection != null && connection.GetConnectionState().State == ConnectionState.Connected)
                 {
                     context.Send(stream =>
                     {
@@ -100,9 +104,9 @@ namespace Stormancer
                     });
                     return;
                 }
-                if(!_config.EnableNatPunchthrough)
+                if (!_config.EnableNatPunchthrough)
                 {
-                    if(candidate.ListeningEndpointCandidate.Address.Substring(0,9) == "127.0.0.1")
+                    if (candidate.ListeningEndpointCandidate.Address.Substring(0, 9) == "127.0.0.1")
                     {
                         context.Send(stream =>
                         {
@@ -119,7 +123,7 @@ namespace Stormancer
                         return;
                     }
                 }
-                else if(_config.DedicatedServerEndpoint != "")
+                else if (!string.IsNullOrEmpty(_config.DedicatedServerEndpoint))
                 {
                     context.Send(stream =>
                     {
@@ -138,62 +142,67 @@ namespace Stormancer
                 }
             });
 
-            builder.Service((byte)SystemRequestIDTypes.ID_P2P_TEST_CONNECTIVITY_HOST, async context =>
+            builder.Service((byte)SystemRequestIDTypes.ID_P2P_TEST_CONNECTIVITY_HOST, context =>
             {
                 var candidate = _serializer.Deserialize<ConnectivityCandidate>(context.InputStream);
                 _logger.Log(LogLevel.Debug, "p2p", "Starting connectivity test (Listener)");
 
                 var connection = _connections.GetConnection(candidate.ClientPeer);
-                if(connection != null && connection.GetConnectionState().State == ConnectionState.Connected)
+                if (connection != null && connection.GetConnectionState().State == ConnectionState.Connected)
                 {
-                    context.Send(stream =>{});
-                    return;
+                    context.Send(stream => { });
+                    return Task.CompletedTask;
                 }
-                if(_config.DedicatedServerEndpoint == "" && _config.EnableNatPunchthrough)
+                if (string.IsNullOrEmpty(_config.DedicatedServerEndpoint) && _config.EnableNatPunchthrough)
                 {
                     _transport.OpenNat(candidate.ClientEndpointCandidate.Address);
                 }
                 context.Send(stream => { });
-                return;
+                return Task.CompletedTask;
             });
 
             builder.Service((byte)SystemRequestIDTypes.ID_P2P_CONNECT_HOST, async context =>
             {
                 var candidate = _serializer.Deserialize<ConnectivityCandidate>(context.InputStream);
-
                 var connection = _connections.GetConnection(candidate.ClientPeer);
+                _logger.Log(LogLevel.Debug, "P2P", $"ClientPeer connection {connection?.ToString()}");
                 var sessionId = P2PSessionId.From(candidate.SessionId);
                 if (connection != null && connection.GetConnectionState().State == ConnectionState.Connected)
                 {
-                    _sessions.UpdateSessionState(sessionId, P2PSessionState.Connected);
-                    context.Send(stream => { });
-                    return;
-                }
-
-                _logger.Log(LogLevel.Debug, "p2p", "Waiting connection");
-
-                try
-                {
-                    connection = await _connections.AddPendingConnection(candidate.ClientPeer);
-                    connection.Metadata["type"] = "p2p";
+                    _logger.Log(LogLevel.Debug, "p2p", "Connection already existing and connected");
                     _sessions.UpdateSessionState(sessionId, P2PSessionState.Connected);
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.Log(LogLevel.Error, "p2p.connect_host", $"An error occured {ex.Message}");
+                    _logger.Log(LogLevel.Debug, "p2p", "Waiting connection");
+
+
+                    _ = _connections.AddPendingConnection(candidate.ClientPeer).ContinueWith(t =>
+                    {
+                        try
+                        {
+                            var co = t.Result;
+                            co.Metadata["type"] = "p2p";
+                            _sessions.UpdateSessionState(sessionId, P2PSessionState.Connected);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Log(LogLevel.Error, "p2p.connect_host", $"An error occured {ex.Message}");
+                        }
+                    });
                 }
+
                 context.Send(stream => { });
             });
 
             builder.Service((byte)SystemRequestIDTypes.ID_P2P_CONNECT_CLIENT, async context =>
             {
                 var candidate = _serializer.Deserialize<ConnectivityCandidate>(context.InputStream);
-
-                _logger.Log(LogLevel.Debug, "p2p", "Starting P2P client connection client peer =" + candidate.ClientPeer);
                 var connection = _connections.GetConnection(candidate.ListeningPeer);
                 var sessionId = P2PSessionId.From(candidate.SessionId);
                 if (connection != null && connection.GetConnectionState().State == ConnectionState.Connected)
                 {
+                    _logger.Log(LogLevel.Warn, "p2p", $"Connection with {candidate.ListeningPeer} already existing and connected");
                     _sessions.UpdateSessionState(sessionId, P2PSessionState.Connected);
                     context.Send(stream =>
                     {
@@ -203,23 +212,26 @@ namespace Stormancer
                 }
 
                 _logger.Log(LogLevel.Debug, "p2p", "Connecting...");
-                try
+                _ =_connections.AddPendingConnection(candidate.ListeningPeer).ContinueWith(task =>
                 {
-                    connection = await _connections.AddPendingConnection(candidate.ListeningPeer);
-                    connection.Metadata["type"] = "p2p";
-                    _sessions.UpdateSessionState(sessionId, P2PSessionState.Connected);
-                }
-                catch (System.Exception ex)
-                {
-                    _logger.Log(LogLevel.Error, "p2p.connect_client", $"An error occurred : {ex.Message}");
-                }
+                    try
+                    {
+                        connection = task.Result;
+                        connection.Metadata["type"] = "p2p";
+                        _sessions.UpdateSessionState(sessionId, P2PSessionState.Connected);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        _logger.Log(LogLevel.Error, "p2p.connect_client", $"An error occurred : {ex.Message}");
+                    }
+                });
                 try
                 {
                     connection = await _transport.Connect(candidate.ListeningEndpointCandidate.Address, sessionId.ToString(), context.Packet.Connection.Key);
-                    _logger.Log(LogLevel.Debug, "p2p", "Successfully completed connection to " + connection.Id);
+                    _logger.Log(LogLevel.Debug, "p2p", $"Successfully connected to {connection.ToString()}");
                     context.Send(stream =>
                     {
-                        bool connected = connection != null && connection.GetConnectionState().State == ConnectionState.Connected;
+                        bool connected = connection != null && connection.GetConnectionState().State == ConnectionState.Connected; 
                         _serializer.Serialize(connected, stream);
                     });
                 }
@@ -231,60 +243,65 @@ namespace Stormancer
 
             });
 
-            builder.Service((byte)SystemRequestIDTypes.ID_P2P_OPEN_TUNNEL, async context =>
-            {
-                var serverId = _serializer.Deserialize<string>(context.InputStream);
+            builder.Service((byte)SystemRequestIDTypes.ID_P2P_OPEN_TUNNEL, context =>
+           {
+               var serverId = _serializer.Deserialize<string>(context.InputStream);
 
-                var peerId = context.Packet.Connection.Id;
-                if(!_config.HasPublicIp)
-                {
-                    var handle = _tunnels.AddClient(serverId, peerId);
-                    context.Send(stream =>
-                    {
-                        OpenTunnelResult result = new OpenTunnelResult();
-                        result.UseTunnel = true;
-                        result.Handle = handle;
-                        _serializer.Serialize(result, stream);
-                    });
-                }
-                else
-                {
-                    string endpoint = _config.IpPort;
-                    context.Send(stream =>
-                    {
-                        OpenTunnelResult result = new OpenTunnelResult();
-                        result.UseTunnel = false;
-                        result.Endpoint = endpoint;
-                        _serializer.Serialize(result, stream);
-                    });
-                }
-            });
+               var peerId = context.Packet.Connection.Id;
+               if (!_config.HasPublicIp)
+               {
+                   var handle = _tunnels.AddClient(serverId, peerId);
+                   context.Send(stream =>
+                   {
+                       OpenTunnelResult result = new OpenTunnelResult();
+                       result.UseTunnel = true;
+                       result.Handle = handle;
+                       _serializer.Serialize(result, stream);
+                   });
+               }
+               else
+               {
+                   string endpoint = _config.IpPort;
+                   context.Send(stream =>
+                   {
+                       OpenTunnelResult result = new OpenTunnelResult();
+                       result.UseTunnel = false;
+                       result.Endpoint = endpoint;
+                       _serializer.Serialize(result, stream);
+                   });
+               }
+               return Task.CompletedTask;
+           });
 
-            builder.Service((byte)SystemRequestIDTypes.ID_P2P_CLOSE_TUNNEL, async context =>
+            builder.Service((byte)SystemRequestIDTypes.ID_P2P_CLOSE_TUNNEL, context =>
             {
                 var handle = _serializer.Deserialize<byte>(context.InputStream);
                 _tunnels.CloseTunnel(handle, context.Packet.Connection.Id);
+                return Task.CompletedTask;
             });
 
-            builder.Service((byte)SystemRequestIDTypes.ID_P2P_RELAY_OPEN, async context =>
+            builder.Service((byte)SystemRequestIDTypes.ID_P2P_RELAY_OPEN, context =>
             {
                 var relay = _serializer.Deserialize<OpenRelayParameters>(context.InputStream);
                 var sessionId = P2PSessionId.From(relay.SessionId);
                 _connections.NewConnection(new RelayConnection(context.Packet.Connection, relay.RemotePeerAddress, relay.RemotePeerId, sessionId, _serializer));
                 _sessions.UpdateSessionState(sessionId, P2PSessionState.Connected);
                 context.Send(stream => { });
+                return Task.CompletedTask;
             });
 
-            builder.Service((byte)SystemRequestIDTypes.ID_P2P_RELAY_CLOSE, async context =>
+            builder.Service((byte)SystemRequestIDTypes.ID_P2P_RELAY_CLOSE, context =>
             {
                 var peerId = _serializer.Deserialize<ulong>(context.InputStream);
                 var connection = _connections.GetConnection(peerId);
-                if(connection != null)
+                if (connection != null)
                 {
                     _connections.CloseConnection(connection, "P2P relay closed");
-                } 
+                }
                 context.Send(stream => { });
+                return Task.CompletedTask;
             });
+
         }
     }
 }

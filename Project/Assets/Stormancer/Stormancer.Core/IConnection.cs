@@ -108,5 +108,7 @@ namespace Stormancer.Core
         /// Event fired when the connection has been closed.
         /// </summary>
         Action<string> OnClose { get; set; }
+
+        string ToString();  
     }
 }

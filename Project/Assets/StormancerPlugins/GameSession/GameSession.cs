@@ -66,7 +66,7 @@ namespace Stormancer.Plugins
             {
                 connectionParameters = await container.GameSessionReadyTask;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 try
                 {

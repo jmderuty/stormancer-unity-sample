@@ -13,13 +13,6 @@ namespace Stormancer.Networking
     /// </summary>
     public interface IConnectionManager
     {
-        /// <summary>
-        /// Generates an unique connection id for this node.
-        /// </summary>
-        /// <returns>A `long` containing an unique id.</returns>
-        /// <remarks>Only used on servers.</remarks>
-        long GenerateNewConnectionId();
-
 
         Task<IConnection> AddPendingConnection(ulong id);
 

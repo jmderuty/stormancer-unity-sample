@@ -56,7 +56,7 @@ namespace Stormancer
             {
                 throw new InvalidOperationException("No p2p connection established to the target peer");
             }
-
+            _logger.Log(Diagnostics.LogLevel.Debug, "P2PTunnel", $"Open Tunnel to {connection.ToString()}");
             var result = await _sysCall.SendSystemRequest<OpenTunnelResult,string>(connection, (byte)SystemRequestIDTypes.ID_P2P_OPEN_TUNNEL, serverId, cancellationToken);
 
             if(result.UseTunnel)
@@ -73,13 +73,12 @@ namespace Stormancer
                 _tunnels.TryAdd((connectionId, result.Handle), client);
                 var tunnel = new P2PTunnel(() =>
                 {
-                    DestroyTunnel(connectionId, result.Handle);
+                    _ = DestroyTunnel(connectionId, result.Handle);
                 });
                 tunnel.Id = serverId;
                 tunnel.Ip = "127.0.0.1";
                 tunnel.Port = (ushort)client.HostPort;
                 return tunnel;
-
             }
             else
             {

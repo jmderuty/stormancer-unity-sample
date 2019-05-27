@@ -62,7 +62,7 @@ namespace Stormancer.Networking
             _type = type;
             _handler = handler;
             //Initialize(maxConnections, serverPort);
-            
+
 
             var tcs = new TaskCompletionSource<bool>();
             Task.Factory.StartNew(() => Run(token, serverPort, maxConnections, tcs, addressType));
@@ -82,7 +82,7 @@ namespace Stormancer.Networking
             }
             catch (Exception ex)
             {
-                _logger.Log(LogLevel.Error, "RakNetTransport", "An error occurred during Run : "+ex.Message, ex);
+                _logger.Log(LogLevel.Error, "RakNetTransport", "An error occurred during Run : " + ex.Message, ex);
                 throw;
             }
 
@@ -118,7 +118,7 @@ namespace Stormancer.Networking
 #endif
             _logger.Debug($"socket descriptor list size : {socketDescriptorList.Size()}");
             var startupResult = server.Startup(maxConnections, socketDescriptorList, 1);
-            if(startupResult == StartupResult.RAKNET_ALREADY_STARTED)
+            if (startupResult == StartupResult.RAKNET_ALREADY_STARTED)
             {
                 _logger.Error("raknet server already started. Shuting down actual server and create new one");
                 server.Shutdown(1000);
@@ -135,7 +135,7 @@ namespace Stormancer.Networking
                 }
                 catch (Exception ex)
                 {
-                    _logger.Log(LogLevel.Error, "RakNetTransport", "An error occurred during Run : "+ex.Message, ex);
+                    _logger.Log(LogLevel.Error, "RakNetTransport", "An error occurred during Run : " + ex.Message, ex);
                     throw;
                 }
                 startupResult = server.Startup(maxConnections, socketDescriptorList, 1);
@@ -157,33 +157,29 @@ namespace Stormancer.Networking
                 for (var packet = server.Receive(); packet != null; packet = server.Receive())
                 {
 
-
-
                     switch (packet.data[0])
                     {
                         case (byte)DefaultMessageIDTypes.ID_CONNECTION_REQUEST_ACCEPTED:
-                            if(_pendingConnections.Count == 0)
+                            if (_pendingConnections.Count == 0)
                             {
                                 _logger.Log(LogLevel.Error, "RakNetTransport", "Can't get the pending connection TCS", packet.systemAddress.ToString(true, ':'));
                             }
                             else
                             {
-
-                                IConnection c;
                                 PendingConnection pendingConnection;
                                 _pendingConnections.TryPeek(out pendingConnection);
 
-                                if(pendingConnection.CancellationToken.IsCancellationRequested)
+                                if (pendingConnection.CancellationToken.IsCancellationRequested)
                                 {
                                     _peer.CloseConnection(packet.guid, false);
                                 }
-                                else if(pendingConnection.IsP2P)
+                                else if (pendingConnection.IsP2P)
                                 {
                                     var parentConnection = _handler.GetConnection(pendingConnection.ParentId);
 
                                     BitStream stream = new BitStream();
                                     stream.Write((byte)MessageIDTypes.ID_ADVERTISE_PEERID);
-                                    stream.Write(parentConnection.Id);
+                                    stream.Write((long)parentConnection.Id);
                                     stream.Write(pendingConnection.ParentId);
                                     stream.Write(pendingConnection.Id);
                                     stream.Write(true);
@@ -202,7 +198,8 @@ namespace Stormancer.Networking
                         case (byte)DefaultMessageIDTypes.ID_ALREADY_CONNECTED:
                             _logger.Log(LogLevel.Error, "RakNetTransport", "peer already connected", packet.systemAddress.ToString(true, ':'));
                             break;
-
+                        case (byte)DefaultMessageIDTypes.ID_NEW_INCOMING_CONNECTION:
+                            break;
                         case (byte)DefaultMessageIDTypes.ID_DISCONNECTION_NOTIFICATION:
                             _logger.Trace("{0} disconnected.", packet.systemAddress.ToString());
                             OnDisconnection(packet, server, "CLIENT_DISCONNECTED");
@@ -221,20 +218,38 @@ namespace Stormancer.Networking
                             _logger.Log(LogLevel.Trace, "RakNetTransport", "this IP address connected recently, and can't connect again as a security measure", packet.systemAddress.ToString(true, ':'));
                             break;
                         case (byte)DefaultMessageIDTypes.ID_UNCONNECTED_PONG:
-                            throw new NotImplementedException();
-					    case (byte)DefaultMessageIDTypes.ID_UNCONNECTED_PING_OPEN_CONNECTIONS:
+                            {
+                                var address = packet.systemAddress.ToString(true, ':');
+                                _logger.Log(LogLevel.Debug, "RakNetTransport", "Received pong message.", address);
+                                using (var bitStream = new BitStream(packet.data, packet.length, false))
+                                {
+                                    bitStream.IgnoreBytes(1);
+                                    bitStream.Read(out int sentOn);
+
+                                    if (_pendingPings.TryGetValue(address, out var pingTcs))
+                                    {
+                                        pingTcs.SetResult((int)(RakNet.RakNet.GetTimeMS() - sentOn));
+                                    }
+                                    else
+                                    {
+                                        _logger.Log(LogLevel.Debug, "p2p", $"No pending ping for {address} cannot set the result");
+                                    }
+                                }
+                            }
                             break;
-					    case (byte)DefaultMessageIDTypes.ID_ADVERTISE_SYSTEM:
+                        case (byte)DefaultMessageIDTypes.ID_UNCONNECTED_PING_OPEN_CONNECTIONS:
+                            break;
+                        case (byte)DefaultMessageIDTypes.ID_ADVERTISE_SYSTEM:
                             _logger.Log(LogLevel.Trace, "RakNetTransport", "Inform a remote system of our IP/Port", packet.systemAddress.ToString(true, ':'));
                             break;
-					    // Stormancer messages types
-					    case (byte)MessageIDTypes.ID_CONNECTION_RESULT:
+                        // Stormancer messages types
+                        case (byte)MessageIDTypes.ID_CONNECTION_RESULT:
                             {
                                 string packetSystemAddressStr = packet.systemAddress.ToString(true, ':');
                                 if (_pendingConnections.Count > 0)
                                 {
                                     PendingConnection pending;
-                                    if(_pendingConnections.TryDequeue(out pending))
+                                    if (_pendingConnections.TryDequeue(out pending))
                                     {
                                         ulong sid = BitConverter.ToUInt64(packet.data, 1);
 
@@ -251,10 +266,11 @@ namespace Stormancer.Networking
                         case (byte)MessageIDTypes.ID_CLOSE_REASON:
                             {
                                 var connection = GetConnection(packet.guid);
-                                if(connection != null)
+                                if (connection != null)
                                 {
                                     using (BitStream stream = new BitStream(packet.data, packet.length, true))
                                     {
+                                        stream.IgnoreBits(1);
                                         string reason;
                                         stream.Read(out reason);
                                         connection.CloseReason = reason;
@@ -263,60 +279,55 @@ namespace Stormancer.Networking
                             }
                             break;
                         case (byte)DefaultMessageIDTypes.ID_UNCONNECTED_PING:
-                        	break;
+                            break;
                         case (byte)MessageIDTypes.ID_ADVERTISE_PEERID:
                             {
                                 string packetSystemAddressStr = packet.systemAddress.ToString(true, ':');
                                 string parentId;
-                                byte[] buffer;
                                 string id;
                                 bool requestResponse = false;
-                                ulong remotePeerId = 0;
-                                
-                                using (MemoryStream stream = new MemoryStream(packet.data))
+                                long remotePeerId = 0;
+
+                                using (var stream = new BitStream(packet.data, packet.length, false))
                                 {
-                                    using (BinaryReader reader = new BinaryReader(stream))
-                                    {
-                                        // read the first byte for the MessageIdType
-                                        reader.ReadByte();
+                                    // read the first byte for the MessageIdType
+                                    stream.IgnoreBytes(1);
+                                    stream.Read(out remotePeerId);
+                                    stream.Read(out parentId);
+                                    stream.Read(out id);
+                                    stream.Read(out requestResponse);
+                                }
 
-                                        remotePeerId = reader.ReadUInt64();
-                                        parentId = reader.ReadString();
-                                        id = reader.ReadString();
-                                        requestResponse = reader.ReadBoolean();
-                                    }
-
-                                    if(!requestResponse)
+                                if (!requestResponse)
+                                {
+                                    PendingConnection pending;
+                                    _logger.Log(LogLevel.Trace, "RakNetTransport", "Pending connection count "+_pendingConnections.Count);
+                                    if (_pendingConnections.TryDequeue(out pending))
                                     {
-                                        PendingConnection pending;
-                                        if(_pendingConnections.TryDequeue(out pending))
+                                        if (pending.CancellationToken.IsCancellationRequested)
                                         {
-                                            if(pending.CancellationToken.IsCancellationRequested)
-                                            {
-                                                _peer.CloseConnection(packet.guid, false);
-                                            }
-                                            else
-                                            {
-                                                _logger.Log(LogLevel.Trace, "RakNetTransport", "Connection request accepted", packetSystemAddressStr);
-                                                var connection = OnConnection(packet.systemAddress, packet.guid, remotePeerId, pending);
-                                            }
+                                            _peer.CloseConnection(packet.guid, false);
                                         }
-                                        StartNextPendingConnections();
-                                    }
-                                    else
-                                    {
-                                        var parentConnection = _handler.GetConnection(parentId);
-                                        using (BitStream data = new BitStream())
+                                        else
                                         {
-                                            data.Write((byte)MessageIDTypes.ID_ADVERTISE_PEERID);
-                                            data.Write(parentConnection.Id);
-                                            data.Write(parentId);
-                                            data.Write(id);
-                                            data.Write(false);
-                                            _peer.Send(data, RakNet.PacketPriority.MEDIUM_PRIORITY, RakNet.PacketReliability.RELIABLE, '0', packet.guid, false);
+                                            _logger.Log(LogLevel.Trace, "RakNetTransport", "Connection request accepted", packetSystemAddressStr);
+                                            var connection = OnConnection(packet.systemAddress, packet.guid, (ulong)remotePeerId, pending);
                                         }
                                     }
-                                    
+                                    StartNextPendingConnections();
+                                }
+                                else
+                                {
+                                    var parentConnection = _handler.GetConnection(parentId);
+                                    using (BitStream data = new BitStream())
+                                    {
+                                        data.Write((byte)MessageIDTypes.ID_ADVERTISE_PEERID);
+                                        data.Write((long)parentConnection.Id);
+                                        data.Write(parentId);
+                                        data.Write(id);
+                                        data.Write(false);
+                                        _peer.Send(data, RakNet.PacketPriority.MEDIUM_PRIORITY, RakNet.PacketReliability.RELIABLE, '0', packet.guid, false);
+                                    }
                                 }
                             }
                             break;
@@ -324,12 +335,18 @@ namespace Stormancer.Networking
                             OnMessageReceived(packet);
                             break;
                     }
-                    if(packet != null && _peer.IsActive())
+                    if (packet != null && _peer.IsActive())
                     {
                         _peer.DeallocatePacket(packet);
                     }
                 }
-                
+
+                PendingPing ping;
+                if (_pendingPingsQueue.TryDequeue(out ping))
+                {
+                    ping.Tcs.SetResult(SendPingImpl(ping.Address));
+                }
+
                 Thread.Sleep(5);
             }
             server.Shutdown(1000);
@@ -338,9 +355,27 @@ namespace Stormancer.Networking
             _logger.Info("Stopped raknet server.");
         }
 
+        private bool SendPingImpl(string address)
+        {
+            var els = address.Split(':');
+            if (els.Length < 2)
+            {
+                throw new InvalidOperationException("address must contains the character ':' to send a ping");
+            }
+            var port = Convert.ToUInt16(els[1]);
+            if (_peer != null)
+            {
+                return _peer.Ping(els[0], port, false);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         private void ConnectionAttemptFailed(RakNet.Packet packet, string v = null)
         {
-            if(v != null)
+            if (v != null)
             {
                 _logger.Log(LogLevel.Error, "RaknetTransport", v);
             }
@@ -367,12 +402,12 @@ namespace Stormancer.Networking
             Id = p;
         }
 
-#region message handling
+        #region message handling
 
         private IConnection OnConnection(RakNet.SystemAddress systemAddress, RakNetGUID guid, ulong peerId, PendingConnection request)
         {
             _logger.Trace("Connected to endpoint {0}", systemAddress);
-
+            
             IConnection connection = CreateNewConnection(guid, peerId, request.Id);
             var metadata = connection.Metadata;
             var ctx = new PeerConnectedContext { Connection = connection };
@@ -397,13 +432,13 @@ namespace Stormancer.Networking
 
             IConnection connection = CreateNewConnection(guid, peerId, connectionId);
             var ctx = new PeerConnectedContext { Connection = connection };
-            
+
             _connectionHandler.PeerConnected?.Invoke(ctx);
-            
+
 
             connection = ctx.Connection;
             _handler.NewConnection(connection);
-            
+
             ConnectionOpened?.Invoke(connection);
 
             connection.SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Connected, ""));
@@ -417,13 +452,13 @@ namespace Stormancer.Networking
             var connection = RemoveConnection(packet.guid.g);
 
             _handler.CloseConnection(connection, reason);
-            
+
             if (connection != null)
             {
                 connection.OnClose?.Invoke(reason);
+                connection.SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnected, reason));
             }
 
-            connection.SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnected, reason));
         }
 
         private void OnMessageReceived(RakNet.Packet packet)
@@ -443,20 +478,22 @@ namespace Stormancer.Networking
 
             this.PacketReceived(p);
         }
-#endregion
+        #endregion
 
-#region manage connections
+        #region manage connections
         private RakNetConnection GetConnection(RakNetGUID guid)
         {
-            return _connections[guid.g];
+            RakNetConnection connection = null;
+            _connections.TryGetValue(guid.g, out connection);
+            return connection;
         }
 
         private RakNetConnection CreateNewConnection(RakNetGUID raknetGuid, ulong peerId, string key)
         {
-            if(_peer != null)
+            if (_peer != null)
             {
-                var cid = peerId;
                 var connection = new RakNetConnection(raknetGuid, peerId, key, _peer, _logger, _dependencyResolver);
+                _logger.Log(LogLevel.Debug, "RaknetTransport", $"Created new raknetconnection {connection}");
                 connection.OnClose += (reason) =>
                 {
                     _peer.CloseConnection(raknetGuid, true);
@@ -478,11 +515,14 @@ namespace Stormancer.Networking
         {
             if (_peer != null)
             {
-                _peer.CloseConnection(c.Guid, true);
+                using (var rakGuid = new RakNetGUID(c.RaknetGuid))
+                {
+                    _peer.CloseConnection(rakGuid, true);
+                }
             }
         }
 
-#endregion
+        #endregion
 
 
         public Action<Stormancer.Core.Packet> PacketReceived
@@ -512,19 +552,18 @@ namespace Stormancer.Networking
             pendingConnection.Id = id;
             pendingConnection.ParentId = parentId;
             _pendingConnections.Enqueue(pendingConnection);
-            if(shouldStart)
+            if (shouldStart)
             {
                 StartNextPendingConnections();
             }
 
             var connection = await pendingConnection.Tcs.Task;
-            connection.SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Connecting, ""));
             return connection;
         }
 
         private void StartNextPendingConnections()
         {
-            if(_pendingConnections.Count == 0)
+            if (_pendingConnections.Count == 0)
             {
                 return;
             }
@@ -532,7 +571,7 @@ namespace Stormancer.Networking
             PendingConnection pending;
             _pendingConnections.TryPeek(out pending);
 
-            if(pending.CancellationToken.IsCancellationRequested)
+            if (pending.CancellationToken.IsCancellationRequested)
             {
                 _pendingConnections.TryDequeue(out pending);
                 StartNextPendingConnections();
@@ -541,7 +580,7 @@ namespace Stormancer.Networking
             var endpoint = pending.Endpoint;
             var split = endpoint.Split(':');
             var tcs = pending.Tcs;
-            if(split.Length < 2)
+            if (split.Length < 2)
             {
                 tcs.SetException(new ArgumentException($"Bad server endpoint, no port ({endpoint})"));
                 return;
@@ -552,7 +591,7 @@ namespace Stormancer.Networking
                 tcs.SetException(new ArgumentException(($"Bad server endpoint, no host ({endpoint})")));
                 return;
             }
-            
+
             _port = UInt16.Parse(portString);
             if (_port == 0)
             {
@@ -611,9 +650,9 @@ namespace Stormancer.Networking
         {
             var connection = RemoveConnection(guid);
 
-            if(connection != null)
+            if (connection != null)
             {
-                if(connection.CloseReason != "")
+                if (connection.CloseReason != "")
                 {
                     reason = connection.CloseReason;
                 }
@@ -632,12 +671,12 @@ namespace Stormancer.Networking
         {
             var nbIps = _peer.GetNumberOfAddresses();
             List<string> endpoints = new List<string>();
-            for(uint i = 0; i <nbIps; i++)
+            for (uint i = 0; i < nbIps; i++)
             {
                 var boundAddress = _peer.GetMyBoundAddress(0);
                 var ip = _peer.GetLocalIP(i);
                 var address = IPAddress.Parse(ip);
-                if(address.AddressFamily == AddressFamily.InterNetwork)
+                if (address.AddressFamily == AddressFamily.InterNetwork)
                 {
                     endpoints.Add($"{ip}:{boundAddress.GetPort()}");
                 }
@@ -648,53 +687,68 @@ namespace Stormancer.Networking
         public async Task<int> SendPing(string address, int number, CancellationToken cancellationToken)
         {
             TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
-            if(!_pendingPings.TryAdd(address, tcs))
-            {
-                throw new InvalidOperationException($"Could not insert {address} into the pending pings");
-            }
+            _pendingPings.TryAdd(address, tcs);
             var eventSetTask = tcs.Task;
             CancellationTokenSource cts = cancellationToken.CanBeCanceled ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken) : new CancellationTokenSource();
             List<Task<bool>> tasks = new List<Task<bool>>();
-            for(int i = 0; i < number; i++)
+            for (int i = 0; i < number; i++)
             {
-
-                await Task.Delay(300 * i, cts.Token);
-                var task = SendPingImplTask(address);
-                tasks.Add(task);
-                await task;
-            }
-            var results = await Task.WhenAll(tasks);
-            cts.Token.ThrowIfCancellationRequested();
-            bool sent = false;
-            foreach(bool result in results)
-            {
-                if(result)
+                tasks.Add(Task.Run(async () =>
                 {
-                    sent = true;
-                    break;
-                }
+                    await Task.Delay(300 * i, cts.Token);
+
+                    _logger.Log(LogLevel.Debug, "p2p", $"sending ping {i}");
+                    var result = await SendPingImplTask(address);
+                    _logger.Log(LogLevel.Debug, "p2p", $"ping {i} returned {result}");
+                    return result;
+
+                }, cts.Token));
             }
-            if(!sent)
-            {
-                _logger.Log(LogLevel.Error, "RakNetTransport", $"Pings to {address} failed : unreachable address");
-                tcs.SetResult(-1);
-            }
+
+            _ = Task.Run(async () =>
+             {
+                 await Task.WhenAll(tasks);
+                 _logger.Log(LogLevel.Debug, "p2p", "All pings are sent.");
+
+                 var sent = false;
+                 foreach (var t in tasks)
+                 {
+                     if (await (t))
+                     {
+                         sent = true;
+                         break;
+                     }
+                 }
+
+                 if (!sent)
+                 {
+                     _logger.Log(LogLevel.Error, "RakNetTransport", $"Pings to {address} failed : unreachable address");
+                     tcs.SetResult(-1);
+                 }
+                 else
+                 {
+                     _logger.Log(LogLevel.Debug, "RakNetTransport", $"Pings to {address} Success");
+                 }
+             }, cts.Token);
 
             try
             {
-                var result = await tcs.Task.TimeOut(1500);
-                TaskCompletionSource<int> taskSource;
-                if(_pendingPings.TryRemove(address, out taskSource))
-                {
-                    taskSource.SetCanceled();
-                }
-                return result;
+                return await tcs.Task.TimeOut(1500);
             }
             catch (System.Exception ex)
             {
-                _logger.Log(LogLevel.Error, "RakNetTransport", $"Ping to {address} failed : {ex.Message}");
+                _logger.Log(LogLevel.Debug, "RakNetTransport", $"Ping to {address} failed", ex.Message);
                 return -1;
             }
+            finally
+            {
+                if (_pendingPings.TryRemove(address, out var taskSource)) // destroys the tce and cancels the task
+                {
+                    _logger.Log(LogLevel.Debug, "p2p", $"Remove pending ping for {address}");
+                    taskSource.TrySetCanceled();
+                }
+            }
+
         }
 
         private Task<bool> SendPingImplTask(string address)

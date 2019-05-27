@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine.Networking;
 using Stormancer.Core;
+using UnityEditor;
 
 // Those PluginProertyHolder are used to hide/display all information for each plugin in the inspector
 [System.Serializable]
@@ -89,9 +90,12 @@ public class StormancerDemoUI : MonoBehaviour
     }
 
     private void Update()
-    {
-        var auth = ClientProvider.GetService<AuthenticationService>();
-        UserIdField.text = auth.UserId;
+    { 
+        if(ClientProvider.ClientId != 0)
+        {
+            var auth = ClientProvider.GetService<AuthenticationService>();
+            UserIdField.text = auth.UserId;
+        }
     }
 
     #region Authentication
@@ -121,24 +125,34 @@ public class StormancerDemoUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        
         ClientProvider.CloseClient();
     }
 
     private void CheckConnectionState(GameConnectionStateCtx gameConnectionStateCtx)
     {
-        if(gameConnectionStateCtx.State == GameConnectionState.Authenticated)
+#if UNITY_EDITOR
+        //this will avoid the UI to change when we stop playing in editor
+        if(EditorApplication.isPlaying)
         {
-            Authentication.OnConnected.Invoke();
+#endif
+
+            if (gameConnectionStateCtx.State == GameConnectionState.Authenticated)
+            {
+                Authentication.OnConnected.Invoke();
+            }
+            else if(gameConnectionStateCtx.State == GameConnectionState.Disconnected)
+            {
+                Authentication.OnDisconnected.Invoke();
+            }
+            else if (gameConnectionStateCtx.State == GameConnectionState.Reconnecting)
+            {
+                Authentication.OnDisconnected.Invoke();
+                Authentication.OnReconnecting.Invoke();
+            }
+#if UNITY_EDITOR
         }
-        else if(gameConnectionStateCtx.State == GameConnectionState.Disconnected)
-        {
-            Authentication.OnDisconnected.Invoke();
-        }
-        else if (gameConnectionStateCtx.State == GameConnectionState.Reconnecting)
-        {
-            Authentication.OnDisconnected.Invoke();
-            Authentication.OnReconnecting.Invoke();
-        }
+#endif
     }
     #endregion
 
@@ -418,7 +432,7 @@ public class StormancerDemoUI : MonoBehaviour
             var userScoreContainer = container.GetChild(i);
             var texts = userScoreContainer.GetComponentsInChildren<Text>();
             texts[0].text = score.Key;
-            texts[1].text = score.Value;
+            texts[1].text = score.Value; 
             i++;
         }
     }

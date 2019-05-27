@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Stormancer.Networking.Processors;
 using Stormancer.Client45;
+using Stormancer.Diagnostics;
 
 namespace Stormancer
 {
@@ -15,14 +16,16 @@ namespace Stormancer
         private readonly ISerializer _serializer;
         private readonly RequestProcessor _sysCall;
         private readonly P2PTunnels _tunnels;
+        private readonly ILogger _logger;
 
-        public P2PService(IConnectionManager connections, RequestProcessor sysClient, ITransport transport, ISerializer serializer, P2PTunnels tunnels)
+        public P2PService(IConnectionManager connections, RequestProcessor sysClient, ITransport transport, ISerializer serializer, P2PTunnels tunnels, ILogger logger)
         {
             _connections = connections;
             _sysCall = sysClient;
             _transport = transport;
             _serializer = serializer;
             _tunnels = tunnels;
+            _logger = logger;
         }
 
         public P2PTunnel RegisterP2PServer(string p2pServerId)

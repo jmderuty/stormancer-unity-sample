@@ -96,6 +96,11 @@ namespace Stormancer.Plugins
         {
             Connection = connection;
         }
+
+        public string ToString()
+        {
+            return Connection.ToString();
+        }
     }
 }
 #endif

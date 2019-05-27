@@ -76,13 +76,13 @@ namespace Stormancer
                 switch(logLevel) {
                     case Diagnostics.LogLevel.Fatal:
                     case Diagnostics.LogLevel.Error:
-                        UnityEngine.Debug.LogError(logLevel.ToString() + ": " + category + ": " + message + " : " +context?.ToString());
+                        UnityEngine.Debug.LogError(logLevel.ToString() + ": " + category + ": " + message);
                         break;
                     case Diagnostics.LogLevel.Warn:
-                        UnityEngine.Debug.LogWarning(logLevel.ToString() + ": " + category + ": " + message + " : " + context?.ToString());
+                        UnityEngine.Debug.LogWarning(logLevel.ToString() + ": " + category + ": " + message);
                         break;
                     default:
-                        UnityEngine.Debug.Log(logLevel.ToString() + ": " + category + ": " + message + " : " + context?.ToString());
+                        UnityEngine.Debug.Log(logLevel.ToString() + ": " + category + ": " + message);
                         break;
                 }
             });

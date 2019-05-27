@@ -24,13 +24,16 @@ namespace Stormancer.Networking
             public static IConnectionStatistics GetConnectionStatistics(RakNetConnection connection)
             {
                 var result = new RakNetConnectionStatistics();
-                using (var stats = connection._rakPeer.GetStatistics(connection._rakPeer.GetSystemAddressFromGuid(connection._guid)))
+                using (var raknetGuid = new RakNetGUID(connection.RaknetGuid))
                 {
-                    result.PacketLossRate = stats.packetlossLastSecond;
-                    result.BytesPerSecondLimitationType = stats.isLimitedByOutgoingBandwidthLimit ? BPSLimitationType.OutgoingBandwidth : (stats.isLimitedByCongestionControl ? BPSLimitationType.CongestionControl : BPSLimitationType.None);
-                    result.BytesPerSecondLimit = (long)(stats.isLimitedByOutgoingBandwidthLimit ? stats.BPSLimitByOutgoingBandwidthLimit : stats.BPSLimitByCongestionControl);
-                    result._queuedBytes = stats.bytesInSendBuffer.ToArray();
-                    result._queuedPackets = stats.messageInSendBuffer.ToArray();
+                    using (var stats = connection._rakPeer.GetStatistics(connection._rakPeer.GetSystemAddressFromGuid(raknetGuid)))
+                    {
+                        result.PacketLossRate = stats.packetlossLastSecond;
+                        result.BytesPerSecondLimitationType = stats.isLimitedByOutgoingBandwidthLimit ? BPSLimitationType.OutgoingBandwidth : (stats.isLimitedByCongestionControl ? BPSLimitationType.CongestionControl : BPSLimitationType.None);
+                        result.BytesPerSecondLimit = (long)(stats.isLimitedByOutgoingBandwidthLimit ? stats.BPSLimitByOutgoingBandwidthLimit : stats.BPSLimitByCongestionControl);
+                        result._queuedBytes = stats.bytesInSendBuffer.ToArray();
+                        result._queuedPackets = stats.messageInSendBuffer.ToArray();
+                    }
                 }
 
                 return result;
@@ -75,24 +78,23 @@ namespace Stormancer.Networking
 
 
 
-        private RakPeerInterface _rakPeer;
-        private RakNetGUID _guid;
+        private readonly RakPeerInterface _rakPeer;
 
         private Dictionary<string, string> _metadata = new Dictionary<string, string>();
         private ILogger _logger;
         private ConnectionStateCtx _connectionState;
-        private Subject<ConnectionStateCtx> _connectionStateObservable;
-        private IDependencyResolver _dependencyResolver;
-        private string _key;
+        private readonly Subject<ConnectionStateCtx> _connectionStateObservable;
+        public Guid UniqueId { get; }
 
         internal RakNetConnection(RakNetGUID guid, ulong id, string key, RakPeerInterface peer, ILogger logger, IDependencyResolver resolver)
         {
+            UniqueId = System.Guid.NewGuid();
             ConnectionDate = DateTime.UtcNow;
             LastActivityDate = DateTime.UtcNow;
             Id = id;
-            _key = key;
-            _guid = guid;
-            _dependencyResolver = resolver;
+            Key = key;
+            RaknetGuid = guid.g;
+            DependencyResolver = resolver;
             _rakPeer = peer;
             _logger = logger;
             _connectionStateObservable = new Subject<ConnectionStateCtx>();
@@ -113,23 +115,11 @@ namespace Stormancer.Networking
         /// <summary>
         /// Id of the connection
         /// </summary>
-        public RakNetGUID Guid
-        {
-            get
-            {
-                return _guid;
-            }
-        }
+        public ulong RaknetGuid { get; }
 
-        public string Key
-        {
-            get
-            {
-                return _key;
-            }
-        }
+        public string Key { get; }
 
-        public IDependencyResolver DependencyResolver => _dependencyResolver;
+        public IDependencyResolver DependencyResolver { get; }
 
         /// <summary>
         /// The reason of the closure
@@ -149,7 +139,11 @@ namespace Stormancer.Networking
         {
             get
             {
-                return _rakPeer.GetSystemAddressFromGuid(_guid).ToString();
+                //_logger.Log(LogLevel.Debug, "RakNetConnection", $"connection guid {RaknetGuid}");
+                using (var rakGuid = new RakNetGUID(RaknetGuid))
+                {
+                    return _rakPeer.GetSystemAddressFromGuid(rakGuid).ToString();
+                }
             }
         }
 
@@ -171,11 +165,11 @@ namespace Stormancer.Networking
 
         public async Task UpdatePeerMetadata(CancellationToken token)
         {
-            var requestProcessor = _dependencyResolver.Resolve<RequestProcessor>();
+            var requestProcessor = DependencyResolver.Resolve<RequestProcessor>();
             token = CancellationTokenHelpers.CreateLinkedShutdownToken(token);
             var packet = await requestProcessor.SendSystemRequest(this, (byte)SystemRequestIDTypes.ID_SET_METADATA, (stream) =>
             {
-                _dependencyResolver.Resolve<ISerializer>().Serialize(Metadata, stream);
+                DependencyResolver.Resolve<ISerializer>().Serialize(Metadata, stream);
             }, Core.PacketPriority.MEDIUM_PRIORITY, token);
             _logger.Log(LogLevel.Trace, "RakNetConnection::updatePeerMetadata", "Updated peer metadata");
         }
@@ -187,7 +181,7 @@ namespace Stormancer.Networking
         public void Close(string reason)
         {
             _logger.Log(LogLevel.Trace, "RakNetConnection", $"Closing connection {reason}", Id);
-            if(_connectionState.State == Core.ConnectionState.Connected || _connectionState.State == Core.ConnectionState.Connecting)
+            if (_connectionState.State == Core.ConnectionState.Connected || _connectionState.State == Core.ConnectionState.Connecting)
             {
                 SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnecting, reason));
                 OnClose?.Invoke(reason);
@@ -200,9 +194,12 @@ namespace Stormancer.Networking
         {
             get
             {
-                if(_rakPeer == null)
+                if (_rakPeer == null)
                 {
-                    return _rakPeer.GetLastPing(_guid);
+                    using (var rakGuid = new RakNetGUID(RaknetGuid))
+                    {
+                        return _rakPeer.GetLastPing(rakGuid);
+                    }
                 }
                 else
                 {
@@ -213,7 +210,7 @@ namespace Stormancer.Networking
 
         public void SendSystem(Action<System.IO.Stream> writer, int channelUid, Core.PacketPriority priority = Core.PacketPriority.MEDIUM_PRIORITY, Core.PacketReliability reliability = Core.PacketReliability.RELIABLE_ORDERED, TransformMetadata metadata = new TransformMetadata())
         {
-            if(_metadata["type"] != "p2p")
+            if (_metadata["type"] != "p2p")
             {
                 //var packetTransform = new AESPacketTransform(Resolve<IAES>(), Resolve<ClientConfiguration>());
                 //packetTransform.OnSend(writer, Id, metadata);
@@ -230,13 +227,17 @@ namespace Stormancer.Networking
             stream.Flush();
             var dataSize = stream.Position;
 
-            if(_rakPeer != null)
+            if (_rakPeer != null)
             {
                 int orderingChannel = channelUid % 16;
-                var result = _rakPeer.Send(stream.ToArray(), (int)dataSize, (RakNet.PacketPriority)priority, (RakNet.PacketReliability)reliability, (char)orderingChannel, _guid, false);
-                if(result == 0)
+                using (var rakGuid = new RakNetGUID(RaknetGuid))
                 {
-                    throw new InvalidOperationException("Raknet failed to send the message.");
+                    var result = _rakPeer.Send(stream.ToArray(), (int)dataSize, (RakNet.PacketPriority)priority, (RakNet.PacketReliability)reliability, (char)orderingChannel, rakGuid, false);
+
+                    if (result == 0)
+                    {
+                        throw new InvalidOperationException("Raknet failed to send the message.");
+                    }
                 }
             }
             else
@@ -254,11 +255,7 @@ namespace Stormancer.Networking
             }
         }
 
-        public ulong Id
-        {
-            get;
-            private set;
-        }
+        public ulong Id { get; }
 
         /// <summary>
         /// Connection date
@@ -309,9 +306,12 @@ namespace Stormancer.Networking
             var totalMS = timeout.TotalMilliseconds;
             var totalMSStr = totalMS.ToString();
             Metadata["timeout"] = totalMSStr;
-            if(_rakPeer != null)
+            if (_rakPeer != null)
             {
-                _rakPeer.SetTimeoutTime((uint)totalMS, _rakPeer.GetSystemAddressFromGuid(_guid));
+                using (var rakGuid = new RakNetGUID(RaknetGuid))
+                {
+                    _rakPeer.SetTimeoutTime((uint)totalMS, _rakPeer.GetSystemAddressFromGuid(rakGuid));
+                }
             }
             else
             {
@@ -349,16 +349,25 @@ namespace Stormancer.Networking
         public void SendRaw(Action<Stream> writer, Stormancer.Core.PacketPriority priority, Stormancer.Core.PacketReliability reliability, char channel)
         {
 
-            var stream = new BitStream();
-            writer(new BSStream(stream));
-            var result = _rakPeer.Send(stream, (RakNet.PacketPriority)priority, (RakNet.PacketReliability)reliability, channel, this.Guid, false);
-
-            if (result == 0)
+            using (var stream = new BitStream())
+            using (var bsStream = new BSStream(stream))
             {
-                throw new InvalidOperationException("Failed to send message.");
+                {
+                    writer(bsStream);
+                    using (var rakGuid = new RakNetGUID(RaknetGuid))
+                    {
+                        var result = _rakPeer.Send(stream, (RakNet.PacketPriority)priority, (RakNet.PacketReliability)reliability, channel, rakGuid, false);
+
+                        if (result == 0)
+                        {
+                            throw new InvalidOperationException("Failed to send message.");
+                        }
+                    }
+                }
             }
+
         }
-               
+
         public Action<string> OnClose
         {
             get;
@@ -371,6 +380,11 @@ namespace Stormancer.Networking
         public IConnectionStatistics GetConnectionStatistics()
         {
             return RakNetConnectionStatistics.GetConnectionStatistics(this);
+        }
+
+        public override string ToString()
+        {
+            return $"Address {IpAddress}, id {Id}, guid {RaknetGuid}, unique Id {UniqueId}";
         }
     }
 }

@@ -584,6 +584,8 @@ namespace Stormancer
         {
             var p2pService = DependencyResolver.Resolve<P2PService>();
             var connection = await p2pService.OpenP2PConnection(_peer, p2pToken, ct);
+            _logger.Log(LogLevel.Debug, "Scene.OpenP2PConnection", $"opened p2p connection, {connection.ToString()}");
+            _logger.Log(LogLevel.Debug, "Scene.OpenP2PConnection", $"opened p2p connection, _peer address {_peer.IpAddress}, id {_peer.Id}");
             return new P2PScenePeer(this, connection, p2pService, new P2PConnectToSceneMessage());
         }
 

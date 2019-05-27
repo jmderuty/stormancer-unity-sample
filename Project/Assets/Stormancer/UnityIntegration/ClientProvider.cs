@@ -246,7 +246,7 @@ namespace Stormancer
             /// <returns></returns>
             public long GetClientId()
             {
-                if (_client == null)
+                if (_client == null || _client.Id == null)
                 {
                     return 0;
                 }
@@ -329,6 +329,7 @@ namespace Stormancer
                 if (string.IsNullOrEmpty(AccountId) || string.IsNullOrEmpty(ApplicationName))
                 {
                     Debug.LogError("AccountId or Application name are not set. Cannot connect to remoteScene");
+                    return;
                 }
                 var config = ClientConfiguration.ForAccount(AccountId, ApplicationName);
 

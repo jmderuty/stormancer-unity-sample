@@ -27,7 +27,7 @@ namespace Stormancer
 
         public static async Task<TResult> TimeOut<TResult>(this Task<TResult> task, TimeSpan delay)
         {
-            var cts = new CancellationTokenSource(delay);
+            var cts = new CancellationTokenSource(delay);            
             return await Task.Run<TResult>(() => task, cts.Token);
         }
 

@@ -38,8 +38,6 @@ namespace Stormancer
             peerType = (byte)stream.ReadByte();
             using (BinaryReader reader = new BinaryReader(stream, Encoding.UTF8, true))
             {
-
-
                 switch (peerType)
                 {
                     case 0:

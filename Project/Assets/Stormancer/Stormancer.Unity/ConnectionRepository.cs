@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Stormancer.Diagnostics;
 using Stormancer.Plugins;
+using System.Diagnostics;
 
 namespace Stormancer
 {
@@ -27,39 +28,32 @@ namespace Stormancer
             _logger = logger;
         }
 
-        public long GenerateNewConnectionId()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<IConnection> AddPendingConnection(ulong id)
+        public async Task<IConnection> AddPendingConnection(ulong id)
         {
             var tcs = new TaskCompletionSource<IConnection>();
             if(_pendingP2PConnections.TryAdd(id, new PendingConnection { Id = id, Tcs = tcs }))
             {
-                _logger.Log(LogLevel.Info, "P2P", "Added pending connection from id ", id);
-                return tcs.Task;
+                _logger.Log(LogLevel.Info, "P2P", $"Added pending connection from id {id}");
+                return await tcs.Task;
             }
             else
             {
-                return Task.FromException<IConnection>(new InvalidOperationException($"Connection with id {id} already exists"));
+                throw new InvalidOperationException($"Connection with id {id} already exists");
             }
         }
 
         public void NewConnection(IConnection connection)
         {
-            _logger.Log(LogLevel.Trace, "Connections", $"Adding connection {connection.IpAddress}", connection.Id);
 
             connection.OnClose += (reason) =>
             {
                 _connections.TryRemove(connection.Id, out _);
                 _connectionsByKey.TryRemove(connection.Key, out _);
             };
-
             _connections.TryAdd(connection.Id, connection);
             _connectionsByKey.TryAdd(connection.Key, connection);
 
-            _logger.Log(LogLevel.Info, "Connections", "Completed connection", connection.Id);
+            _logger.Log(LogLevel.Info, "Connections", $"Completed connection {connection.ToString()}");
             PendingConnection pendingConnection;
             if(_pendingP2PConnections.TryRemove(connection.Id, out pendingConnection))
             {
@@ -71,7 +65,9 @@ namespace Stormancer
         public void CloseConnection(IConnection connection, string reason)
         {
             if(connection != null)
-            {   _connections.TryRemove(connection.Id, out _);
+            { 
+                _logger.Log(LogLevel.Debug, "ConnectionRepository", $"Closing connection {connection.ToString()}");
+                _connections.TryRemove(connection.Id, out _);
                 _connectionsByKey.TryRemove(connection.Key, out _);
                 connection.Close(reason);
             }
@@ -114,6 +110,7 @@ namespace Stormancer
                     var key = connection.Key;
                     connection.OnClose += (reason) =>
                     {
+                        _logger.Log(LogLevel.Debug, "ConnectionRepository", $"Closing connection {connection.ToString()}");
                         _connections.TryRemove(pId, out _);
                         _connectionsByKey.TryRemove(key, out _);
                     };

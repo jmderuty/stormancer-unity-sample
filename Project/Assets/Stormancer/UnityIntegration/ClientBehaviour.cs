@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Stormancer.UnityIntegration;
 using System.Linq;
 using Stormancer.Plugins;
+using System;
+using System.Threading.Tasks;
 
 namespace Stormancer
 {
@@ -14,7 +16,7 @@ namespace Stormancer
         private List<string> _serverEndpoints = new List<string>();
 
         private bool _debugLog = true;
-        private bool _localServer = false; 
+        private bool _localServer = true; 
 
         public StringEvent OnDisconnected;
 

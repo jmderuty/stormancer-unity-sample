@@ -85,6 +85,7 @@ namespace Stormancer.Networking.Processors
             config.AddProcessor((byte)MessageIDTypes.ID_SYSTEM_REQUEST, async (packet) =>
             {
                 byte sysRequesteID = (byte)packet.Stream.ReadByte();
+                _logger.Log(LogLevel.Trace, "RequestProcessor", $"Received messageId : {(SystemRequestIDTypes)sysRequesteID}"); 
                 RequestContext context = new RequestContext(packet);
                 if (!_handlers.ContainsKey(sysRequesteID))
                 {
@@ -432,6 +433,5 @@ namespace Stormancer.Networking.Processors
                 writer(s);
             }, 0);
         }
-
     }
 }

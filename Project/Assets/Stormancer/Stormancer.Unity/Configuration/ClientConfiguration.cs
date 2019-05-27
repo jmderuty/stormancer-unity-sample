@@ -242,7 +242,7 @@ namespace Stormancer
 		/// </summary>
         public bool EnableNatPunchthrough { get; internal set; } = true;
 
-        public bool HasPublicIp => DedicatedServerEndpoint != "";
+        public bool HasPublicIp => !string.IsNullOrEmpty(DedicatedServerEndpoint);
         public string IpPort => DedicatedServerEndpoint + ":" + ServerGamePort;
     }
 }
