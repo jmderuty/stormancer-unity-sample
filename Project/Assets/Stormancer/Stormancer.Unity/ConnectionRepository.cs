@@ -5,8 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Stormancer.Diagnostics;
-using Stormancer.Plugins;
-using System.Diagnostics;
 
 namespace Stormancer
 {
@@ -34,7 +32,15 @@ namespace Stormancer
             if(_pendingP2PConnections.TryAdd(id, new PendingConnection { Id = id, Tcs = tcs }))
             {
                 _logger.Log(LogLevel.Info, "P2P", $"Added pending connection from id {id}");
-                return await tcs.Task;
+                try
+                {
+                    return await tcs.Task;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "ConnectionRepository", $"There was an error in AddPendingConnection : {ex.Message}");
+                    throw ex;
+                }
             }
             else
             {
@@ -57,6 +63,7 @@ namespace Stormancer
             PendingConnection pendingConnection;
             if(_pendingP2PConnections.TryRemove(connection.Id, out pendingConnection))
             {
+                _logger.Log(LogLevel.Info, "Connections", $"Completed pending connection {connection.ToString()}");
                 pendingConnection.Tcs.SetResult(connection);
             }
 
@@ -65,7 +72,8 @@ namespace Stormancer
         public void CloseConnection(IConnection connection, string reason)
         {
             if(connection != null)
-            { 
+            {
+                UnityEngine.Debug.Log($"Closing connection {connection.ToString()}");
                 _logger.Log(LogLevel.Debug, "ConnectionRepository", $"Closing connection {connection.ToString()}");
                 _connections.TryRemove(connection.Id, out _);
                 _connectionsByKey.TryRemove(connection.Key, out _);
@@ -110,15 +118,30 @@ namespace Stormancer
                     var key = connection.Key;
                     connection.OnClose += (reason) =>
                     {
+                        UnityEngine.Debug.Log($"Closing connection {connection.ToString()}");
                         _logger.Log(LogLevel.Debug, "ConnectionRepository", $"Closing connection {connection.ToString()}");
-                        _connections.TryRemove(pId, out _);
-                        _connectionsByKey.TryRemove(key, out _);
+                        if(_connections.TryRemove(pId, out _))
+                        {
+                            UnityEngine.Debug.Log($"Succesfully removed connection with id {pId}");
+                        }
+                        else
+                        {
+                            UnityEngine.Debug.Log($"Failed to remove connection with id {pId}");
+                        }
+                        if(_connectionsByKey.TryRemove(key, out _))
+                        {
+                            UnityEngine.Debug.Log($"Succesfully removed connection with key {key}");
+                        }
+                        else
+                        {
+                            UnityEngine.Debug.Log($"Failed to remove connection with key {key}");
+                        }
                     };
                     _connections.TryAdd(pId, connection);
                     _connectionsByKey.TryAdd(id, connection);
                     return connection;
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     _connectionsByKey.TryRemove(id, out _);
                     _logger.Log(LogLevel.Error, "ConnectionRepository", "An error occurred during GetConnection : "+ ex.Message, ex);

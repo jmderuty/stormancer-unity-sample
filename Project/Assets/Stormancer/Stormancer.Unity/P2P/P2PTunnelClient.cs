@@ -12,41 +12,54 @@ namespace Stormancer
         private ILogger _logger;
         private RequestProcessor _sysCall;
         private Action<P2PTunnelClient, UdpReceiveResult> _onMessageReceived;
+        private Action _onError;
         internal UdpClient Client { get; }
         private readonly Task _runTask;
 
         public ulong PeerId { get; set; }
-        public string ServerId { get; set; }        
+        public string ServerId { get; set; }
         public bool IsRunning { get; set; }
         public byte Handle { get; set; }
         public bool ServerSide { get; set; }
         public int HostPort { get; set; }
-        
 
-        private CancellationTokenSource _cts = new CancellationTokenSource();
 
-        public P2PTunnelClient(Action<P2PTunnelClient, UdpReceiveResult> onMessageReceived, RequestProcessor sysCall, ILogger logger)
+        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
+
+        public P2PTunnelClient(Action<P2PTunnelClient, UdpReceiveResult> onMessageReceived, Action onError, ushort tunnelPort, RequestProcessor sysCall, ILogger logger)
         {
-            if(onMessageReceived == null)
+            if (onMessageReceived == null)
             {
                 throw new ArgumentNullException(nameof(onMessageReceived));
             }
             _onMessageReceived = onMessageReceived;
+            _onError = onError;
 
             _sysCall = sysCall;
             _logger = logger;
             HostPort = 0;
 
-            Client = new UdpClient(HostPort);
+            Client = new UdpClient(tunnelPort);
             _runTask = Run(_cts.Token);
         }
 
         private async Task Run(CancellationToken token)
         {
-            while(!token.IsCancellationRequested)
+            try
             {
-                var result = await Client.ReceiveAsync();
-                _onMessageReceived(this, result);
+                while (!token.IsCancellationRequested)
+                {
+                    var message = await Client.ReceiveAsync().ConfigureAwait(false);
+                    _onMessageReceived(this, message);
+                }
+            }
+            finally
+            {
+                if (token.IsCancellationRequested)
+                {
+                    // something went wrong, clean up!
+                    _onError?.Invoke();
+                }
             }
         }
 
@@ -59,33 +72,27 @@ namespace Stormancer
             {
                 if (disposing)
                 {
-                    // TODO: dispose managed state (managed objects).
+                    _cts.Cancel();
+                    Client.Dispose();
+                    try
+                    {
+                        _runTask.Wait();
+                    }
+                    catch (AggregateException ex) when (ex.InnerException is ObjectDisposedException)
+                    {
+                        UnityEngine.Debug.Log("Correctly dispose the P2PTunnelClient");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        _logger.Log(Diagnostics.LogLevel.Error, "P2PTunnelClient", "An error occurred in Dispose : " + ex.Message, ex);
+                    }
+
+                    disposedValue = true;
                 }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
-
-                _cts.Cancel();
-                Client.Dispose();
-                try
-                {
-                    _runTask.Wait();
-                }
-                catch (System.Exception ex) when(!(ex is ObjectDisposedException))
-                {
-                    _logger.Log(Diagnostics.LogLevel.Error, "P2PTunnelClient", "An error occurred in Dispose : "+ ex.Message, ex);
-                }                
-
-                disposedValue = true;
             }
         }
 
-        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-        ~P2PTunnelClient()
-        {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
-            Dispose(false);
-        }
+
 
         // This code added to correctly implement the disposable pattern.
         public void Dispose()

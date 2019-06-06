@@ -161,7 +161,7 @@ namespace Stormancer
                 return Task.CompletedTask;
             });
 
-            builder.Service((byte)SystemRequestIDTypes.ID_P2P_CONNECT_HOST, async context =>
+            builder.Service((byte)SystemRequestIDTypes.ID_P2P_CONNECT_HOST, context =>
             {
                 var candidate = _serializer.Deserialize<ConnectivityCandidate>(context.InputStream);
                 var connection = _connections.GetConnection(candidate.ClientPeer);
@@ -193,6 +193,7 @@ namespace Stormancer
                 }
 
                 context.Send(stream => { });
+                return Task.CompletedTask;
             });
 
             builder.Service((byte)SystemRequestIDTypes.ID_P2P_CONNECT_CLIENT, async context =>

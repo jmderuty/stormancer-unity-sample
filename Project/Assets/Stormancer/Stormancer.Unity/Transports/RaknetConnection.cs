@@ -180,6 +180,7 @@ namespace Stormancer.Networking
         /// </summary>
         public void Close(string reason)
         {
+            UnityEngine.Debug.Log($"Closing connection {Id}, because {reason}");
             _logger.Log(LogLevel.Trace, "RakNetConnection", $"Closing connection {reason}", Id);
             if (_connectionState.State == Core.ConnectionState.Connected || _connectionState.State == Core.ConnectionState.Connecting)
             {

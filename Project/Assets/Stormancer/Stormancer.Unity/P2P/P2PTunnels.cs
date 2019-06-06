@@ -57,14 +57,19 @@ namespace Stormancer
                 throw new InvalidOperationException("No p2p connection established to the target peer");
             }
             _logger.Log(Diagnostics.LogLevel.Debug, "P2PTunnel", $"Open Tunnel to {connection.ToString()}");
-            var result = await _sysCall.SendSystemRequest<OpenTunnelResult,string>(connection, (byte)SystemRequestIDTypes.ID_P2P_OPEN_TUNNEL, serverId, cancellationToken);
+            OpenTunnelResult result = await _sysCall.SendSystemRequest<OpenTunnelResult,string>(connection, (byte)SystemRequestIDTypes.ID_P2P_OPEN_TUNNEL, serverId, cancellationToken);
 
             if(result.UseTunnel)
             {
-                var client = new P2PTunnelClient((tunnelClient, msg) => 
+                var client = new P2PTunnelClient((tunnelClient, msg) =>
                 {
                     OnMessageReceived(tunnelClient, msg);
-                }, _sysCall, _logger);
+                },
+                () => { // on error
+
+                    _ = _sysCall.SendSystemRequest(connection, (byte)SystemRequestIDTypes.ID_P2P_CLOSE_TUNNEL, stream => { stream.WriteByte(result.Handle); }, Core.PacketPriority.HIGH_PRIORITY, cancellationToken);
+                },
+                _configuration.TunnelPort, _sysCall, _logger);
                 client.Handle = result.Handle;
                 client.PeerId = connectionId;
                 client.ServerId = serverId;
@@ -77,7 +82,7 @@ namespace Stormancer
                 });
                 tunnel.Id = serverId;
                 tunnel.Ip = "127.0.0.1";
-                tunnel.Port = (ushort)client.HostPort;
+                tunnel.Port = (ushort)((IPEndPoint)client.Client.Client.LocalEndPoint).Port;
                 return tunnel;
             }
             else
@@ -101,12 +106,17 @@ namespace Stormancer
             for (byte handle = 0; handle < 255; handle++)
             {
                 var key = (clientPeerId, handle);
-                if(_tunnels.ContainsKey(key))
+                if(!_tunnels.ContainsKey(key))
                 {
                     var client = new P2PTunnelClient((tunnelClient, message) => 
                     {
                         OnMessageReceived(tunnelClient, message);
-                    }, _sysCall, _logger);
+                    },
+                    () =>
+                    { // on error
+                        var connection = _connections.GetConnection(serverId);
+                        _ = _sysCall.SendSystemRequest(connection, (byte)SystemRequestIDTypes.ID_P2P_CLOSE_TUNNEL, stream => { stream.WriteByte(handle); }, Core.PacketPriority.HIGH_PRIORITY);
+                    }, server.Port, _sysCall, _logger);
                     client.Handle = handle;
                     client.PeerId = clientPeerId;
                     client.ServerId = serverId;
@@ -122,8 +132,10 @@ namespace Stormancer
         public void CloseTunnel(byte handle, ulong peerId)
         {
             P2PTunnelClient tunnelClient;
-            _tunnels.TryGetValue((peerId, handle), out tunnelClient);
-            tunnelClient.Dispose();
+            if(_tunnels.TryGetValue((peerId, handle), out tunnelClient))
+            {
+                tunnelClient.Dispose();
+            }
         }
 
         public async Task DestroyServer(string serverId)
@@ -152,7 +164,7 @@ namespace Stormancer
         public async Task DestroyTunnel(ulong peerId, byte handle)
         {
             P2PTunnelClient client;
-            if(_tunnels.TryRemove((peerId, handle), out client))
+            if (_tunnels.TryRemove((peerId, handle), out client))
             {
                 client.Dispose();
                 var connection = _connections.GetConnection(peerId);
@@ -167,12 +179,13 @@ namespace Stormancer
         {
             byte handle = (byte)stream.ReadByte();
             var buffer = new byte[1464];
-            var read = stream.Read(buffer, 1, (int)stream.Length - 1);
+            var read = stream.Read(buffer, 0, (int)stream.Length - 1);
             P2PTunnelClient client;
             if(_tunnels.TryGetValue((id, handle), out client))
             {
                 if(client != null)
                 {
+                    UnityEngine.Debug.Log($"sending message to UDP port {client.HostPort}");
                     client.Client.Send(buffer, read, new IPEndPoint(IPAddress.Parse("127.0.0.1"), client.HostPort));
                 }
                 else

@@ -125,7 +125,7 @@ public class StormancerDemoUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        
+        Debug.Log("ON DESTROY");
         ClientProvider.CloseClient();
     }
 
@@ -279,9 +279,11 @@ public class StormancerDemoUI : MonoBehaviour
 
     private void SetupServer(GameSessionConnectionParameters param)
     {
-        if(!NetworkServer.active)
+        
+        if (!NetworkServer.active)
         {
             var config = ClientProvider.GetService<ClientConfiguration>();
+            Debug.Log($"SetupServer on port {config.ServerGamePort}");
             NetworkServer.RegisterHandler(MsgType.Connect, OnClientConnected);
             NetworkServer.RegisterHandler(MsgType.Disconnect, OnClientDisconnected);
             NetworkServer.RegisterHandler(_unityMessageId, OnClientMessage);
@@ -333,6 +335,7 @@ public class StormancerDemoUI : MonoBehaviour
     // CLIENT
     private void SetupClient(GameSessionConnectionParameters param)
     {
+        Debug.Log("SetupClient");
         _netClient = new NetworkClient();
         _netClient.RegisterHandler(MsgType.Connect, OnConnected);
         _netClient.RegisterHandler(MsgType.Disconnect, OnDisconnected);
@@ -344,6 +347,7 @@ public class StormancerDemoUI : MonoBehaviour
 
     void OnConnected(NetworkMessage message)
     {
+        Debug.Log("On unity network connected");
         // Do stuff when connected to the server
 
         StringMessage messageContainer = new StringMessage();
@@ -356,7 +360,7 @@ public class StormancerDemoUI : MonoBehaviour
     void OnDisconnected(NetworkMessage message)
     {
         // Do stuff when disconnected to the server
-        Debug.Log("Disconnected from server");
+        Debug.Log("Disconnected from unity server ");
     }
 
     // Message received from the server
@@ -367,7 +371,7 @@ public class StormancerDemoUI : MonoBehaviour
         // The first thing we do is deserialize the message to our custom type
         var objectMessage = netMessage.ReadMessage<StringMessage>();
 
-        Debug.Log("Message received: " + objectMessage.Message);
+        Debug.Log("Message received from unity network: " + objectMessage.Message);
     }
     #endregion
 

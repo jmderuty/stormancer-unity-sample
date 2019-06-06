@@ -156,6 +156,16 @@ namespace Stormancer.Networking
             {
                 for (var packet = server.Receive(); packet != null; packet = server.Receive())
                 {
+                    /*//DEBUG
+                    if(Enum.IsDefined(typeof(MessageIDTypes), packet.data[0]))
+                    {
+                        _logger.Log(LogLevel.Debug, "Debug", $"Received message {(MessageIDTypes)packet.data[0]}");
+                    }
+                    else
+                    {
+                        _logger.Log(LogLevel.Debug, "Debug", $"Received message {(DefaultMessageIDTypes)packet.data[0]}");
+                    }
+                    //ENDDEBUG*/
 
                     switch (packet.data[0])
                     {
@@ -168,6 +178,7 @@ namespace Stormancer.Networking
                             {
                                 PendingConnection pendingConnection;
                                 _pendingConnections.TryPeek(out pendingConnection);
+                                _logger.Log(LogLevel.Debug, "Connection", $"Connection resquest to {pendingConnection.Id} accepted");
 
                                 if (pendingConnection.CancellationToken.IsCancellationRequested)
                                 {
@@ -202,11 +213,11 @@ namespace Stormancer.Networking
                             break;
                         case (byte)DefaultMessageIDTypes.ID_DISCONNECTION_NOTIFICATION:
                             _logger.Trace("{0} disconnected.", packet.systemAddress.ToString());
-                            OnDisconnection(packet, server, "CLIENT_DISCONNECTED");
+                            OnDisconnection(packet.guid.g, "CLIENT_DISCONNECTED");
                             break;
                         case (byte)DefaultMessageIDTypes.ID_CONNECTION_LOST:
                             _logger.Trace("{0} lost the connection.", packet.systemAddress.ToString());
-                            OnDisconnection(packet, server, "CONNECTION_LOST");
+                            OnDisconnection(packet.guid.g, "CONNECTION_LOST");
                             break;
                         case (byte)DefaultMessageIDTypes.ID_CONNECTION_BANNED:
                             _logger.Log(LogLevel.Trace, "RakNetTransport", "We are banned from the system we attempted to connect to", packet.systemAddress.ToString(true, ':'));
@@ -245,6 +256,7 @@ namespace Stormancer.Networking
                         // Stormancer messages types
                         case (byte)MessageIDTypes.ID_CONNECTION_RESULT:
                             {
+                                _logger.Log(LogLevel.Debug, "Connection", "ID_CONNECTION_RESULT message received");
                                 string packetSystemAddressStr = packet.systemAddress.ToString(true, ':');
                                 if (_pendingConnections.Count > 0)
                                 {
@@ -282,6 +294,7 @@ namespace Stormancer.Networking
                             break;
                         case (byte)MessageIDTypes.ID_ADVERTISE_PEERID:
                             {
+                                _logger.Log(LogLevel.Debug, "Connection", "PeerId advertised");
                                 string packetSystemAddressStr = packet.systemAddress.ToString(true, ':');
                                 string parentId;
                                 string id;
@@ -301,7 +314,6 @@ namespace Stormancer.Networking
                                 if (!requestResponse)
                                 {
                                     PendingConnection pending;
-                                    _logger.Log(LogLevel.Trace, "RakNetTransport", "Pending connection count "+_pendingConnections.Count);
                                     if (_pendingConnections.TryDequeue(out pending))
                                     {
                                         if (pending.CancellationToken.IsCancellationRequested)
@@ -327,6 +339,8 @@ namespace Stormancer.Networking
                                         data.Write(id);
                                         data.Write(false);
                                         _peer.Send(data, RakNet.PacketPriority.MEDIUM_PRIORITY, RakNet.PacketReliability.RELIABLE, '0', packet.guid, false);
+
+                                        OnConnection(packet.systemAddress, packet.guid, (ulong)remotePeerId, id);
                                     }
                                 }
                             }
@@ -444,23 +458,7 @@ namespace Stormancer.Networking
             connection.SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Connected, ""));
             return connection;
         }
-
-
-        private void OnDisconnection(RakNet.Packet packet, RakPeerInterface server, string reason)
-        {
-            _logger.Trace("Disconnected from endpoint {0}", packet.systemAddress);
-            var connection = RemoveConnection(packet.guid.g);
-
-            _handler.CloseConnection(connection, reason);
-
-            if (connection != null)
-            {
-                connection.OnClose?.Invoke(reason);
-                connection.SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnected, reason));
-            }
-
-        }
-
+        
         private void OnMessageReceived(RakNet.Packet packet)
         {
             //var messageId = packet.data[0];
@@ -483,9 +481,15 @@ namespace Stormancer.Networking
         #region manage connections
         private RakNetConnection GetConnection(RakNetGUID guid)
         {
-            RakNetConnection connection = null;
-            _connections.TryGetValue(guid.g, out connection);
-            return connection;
+            if(_connections.TryGetValue(guid.g, out var connection))
+            {
+                return connection;
+            }
+            else
+            {
+                _logger.Log(LogLevel.Error, "RakNetTransport", $"No connection for guid {guid.g}");
+                return null;
+            }
         }
 
         private RakNetConnection CreateNewConnection(RakNetGUID raknetGuid, ulong peerId, string key)
@@ -496,6 +500,7 @@ namespace Stormancer.Networking
                 _logger.Log(LogLevel.Debug, "RaknetTransport", $"Created new raknetconnection {connection}");
                 connection.OnClose += (reason) =>
                 {
+                    UnityEngine.Debug.Log($"Closing peer connection {_peer.ToString()}");
                     _peer.CloseConnection(raknetGuid, true);
                 };
                 _connections.TryAdd(raknetGuid.g, connection);
@@ -648,10 +653,12 @@ namespace Stormancer.Networking
 
         private void OnDisconnection(ulong guid, string reason)
         {
+            UnityEngine.Debug.Log("OnDisconnection");
             var connection = RemoveConnection(guid);
 
             if (connection != null)
             {
+                UnityEngine.Debug.Log("OnDisconnection connection is not null");
                 if (connection.CloseReason != "")
                 {
                     reason = connection.CloseReason;
@@ -663,6 +670,7 @@ namespace Stormancer.Networking
             }
             else
             {
+                UnityEngine.Debug.Log("OnDisconnection connection is null");
                 _logger.Log(LogLevel.Warn, "RakNetTransport", $"Attempting to disconnect from unknown peer (guid: {guid})");
             }
         }

@@ -124,7 +124,7 @@ namespace Stormancer.Networking.Processors
                 return true;
             });
 
-            config.AddProcessor((byte)MessageIDTypes.ID_REQUEST_RESPONSE_MSG, async p =>
+            config.AddProcessor((byte)MessageIDTypes.ID_REQUEST_RESPONSE_MSG, p =>
             {
                 var temp = new byte[2];
                 p.Stream.Read(temp, 0, 2);
@@ -145,10 +145,10 @@ namespace Stormancer.Networking.Processors
                     _logger.Trace("Unknown request id.");
                 }
 
-                return true;
+                return Task.FromResult(true);
             });
 
-            config.AddProcessor((byte)MessageIDTypes.ID_REQUEST_RESPONSE_COMPLETE, async p =>
+            config.AddProcessor((byte)MessageIDTypes.ID_REQUEST_RESPONSE_COMPLETE, p =>
             {
                 var temp = new byte[2];
                 p.Stream.Read(temp, 0, 2);
@@ -172,10 +172,10 @@ namespace Stormancer.Networking.Processors
                     }
                 }
 
-                return true;
+                return Task.FromResult(true);
             });
 
-            config.AddProcessor((byte)MessageIDTypes.ID_REQUEST_RESPONSE_ERROR, async p =>
+            config.AddProcessor((byte)MessageIDTypes.ID_REQUEST_RESPONSE_ERROR, p =>
             {
                 var temp = new byte[2];
                 p.Stream.Read(temp, 0, 2);
@@ -217,13 +217,13 @@ namespace Stormancer.Networking.Processors
                     _logger.Trace("Unknown request id.");
                 }
 
-                return true;
+                return Task.FromResult(true);
             });
         }
         
 
 
-        public Task<Packet> SendSystemRequest(IConnection peer, byte msgId, Action<Stream> writer, PacketPriority priority, CancellationToken ct = default(CancellationToken))
+        public async Task<Packet> SendSystemRequest(IConnection peer, byte msgId, Action<Stream> writer, PacketPriority priority, CancellationToken ct = default(CancellationToken))
         {
             if(peer != null)
             {
@@ -268,30 +268,30 @@ namespace Stormancer.Networking.Processors
                 {
                     tcs.SetException(ex);
                 }
-                return tcs.Task;
+                return await tcs.Task;
             }
             else
             {
-                return Task.FromException<Packet>(new ArgumentNullException("peer should not be null"));
+                throw new ArgumentNullException("peer should not be null");
             }
         }
 
-        public Task<T1> SendSystemRequest<T1, T2>(IConnection peer, byte msgId, T2 data, CancellationToken ct = default(CancellationToken))
+        public async Task<T1> SendSystemRequest<T1, T2>(IConnection peer, byte msgId, T2 data, CancellationToken ct = default(CancellationToken))
         {
-            return SendSystemRequestInternal<T1>(peer, msgId, (stream) => 
+            return await SendSystemRequestInternal<T1>(peer, msgId, (stream) => 
             {
                 _serializer.Serialize(data, stream);
             }, PacketPriority.MEDIUM_PRIORITY, ct);
         }
 
-        public Task<T> SendSystemRequest<T>(IConnection peer, byte msgId, CancellationToken ct = default(CancellationToken))
+        public async Task<T> SendSystemRequest<T>(IConnection peer, byte msgId, CancellationToken ct = default(CancellationToken))
         {
-            return SendSystemRequestInternal<T>(peer, msgId, (stream) => { }, PacketPriority.MEDIUM_PRIORITY, ct);
+            return await SendSystemRequestInternal<T>(peer, msgId, (stream) => { }, PacketPriority.MEDIUM_PRIORITY, ct);
         }
 
-        public Task<Packet> SendSystemRequest(IConnection peer, byte msgId, Action<Stream> writer)
+        public async Task<Packet> SendSystemRequest(IConnection peer, byte msgId, Action<Stream> writer)
         {
-            return this.SendSystemRequest(peer, msgId, writer, PacketPriority.MEDIUM_PRIORITY, CancellationToken.None);
+            return await this.SendSystemRequest(peer, msgId, writer, PacketPriority.MEDIUM_PRIORITY, CancellationToken.None);
         }
 
         private async Task<TResult> SendSystemRequestInternal<TResult>(IConnection peer, byte msgId, Action<Stream> writer, PacketPriority priority, CancellationToken ct)

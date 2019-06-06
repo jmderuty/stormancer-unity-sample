@@ -43,7 +43,7 @@
                 if(name != null)
                 {
                     var gameSession = scene.DependencyResolver.Resolve<GameSessionService>();
-                    gameSession?.OnDisconnecting();
+                    gameSession.OnDisconnecting();
                 }
             }
         }

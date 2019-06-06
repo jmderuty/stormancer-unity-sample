@@ -90,7 +90,7 @@ namespace Stormancer.Plugins
                 container = await GetPartySceneByOnlinePartyName(uniqueOnlinePartyName);
                 OnPartyJoined?.Invoke();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.Log(Diagnostics.LogLevel.Error, "PartyManagement", "Failed to get the party scene", ex);
                 _party = null;
@@ -112,7 +112,7 @@ namespace Stormancer.Plugins
                 container = await GetPartySceneByToken(connectionToken);
                 OnPartyJoined?.Invoke();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.Log(Diagnostics.LogLevel.Error, "PartyManagement", "Failed to get the party scene", ex);
                 _party = null;
@@ -136,7 +136,7 @@ namespace Stormancer.Plugins
                     await container.PartyScene.Disconnect();
                     _party = null;
                 }
-                catch (System.Exception ex)
+                catch (Exception)
                 {
                 	
                 }

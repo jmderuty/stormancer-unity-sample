@@ -426,7 +426,7 @@ namespace Stormancer
             }
             this._syncClockSubscription = this._scheduler.SchedulePeriodic(this._pingInterval, () =>
             {
-                this.SyncClockImpl();
+                _ = this.SyncClockImpl();
             });
         }
 
@@ -670,7 +670,7 @@ namespace Stormancer
             var sceneHandle = scene.Handle;
 
             _scenes.TryRemove(sceneId, out  _);
-
+            UnityEngine.Debug.Log("Client disconnecting");
             scene.SetConnectionState(new ConnectionStateCtx(ConnectionState.Disconnecting, reason));
 
             var sceneDispatcher = DependencyResolver.Resolve<SceneDispatcher>();
@@ -704,7 +704,13 @@ namespace Stormancer
             { };
             if (_serverConnection != null)
             {
+                UnityEngine.Debug.Log("Close ServerConnection");
                 _serverConnection.Close();
+            }
+            else
+            {
+
+                UnityEngine.Debug.Log("cannot close serverconnection as it is null");
             }
 
         }
@@ -722,6 +728,7 @@ namespace Stormancer
         {
             if (!this._disposed)
             {
+                UnityEngine.Debug.Log("Dispose");
                 this._disposed = true;
                 Disconnect();
 
@@ -730,6 +737,11 @@ namespace Stormancer
                 {
                     ev(this);
                 }
+            }
+            else
+            {
+
+                UnityEngine.Debug.Log("Dispose but is already disposed");
             }
 
         }

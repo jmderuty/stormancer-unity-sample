@@ -1,4 +1,5 @@
 ﻿using Stormancer.Networking;
+using System.Threading.Tasks;
 
 namespace Stormancer
 {
@@ -19,11 +20,11 @@ namespace Stormancer
 
         public void RegisterProcessor(PacketProcessorConfig config)
         {
-            config.AddProcessor((byte)MessageIDTypes.ID_P2P_RELAY, async packet =>
+            config.AddProcessor((byte)MessageIDTypes.ID_P2P_RELAY, packet =>
             { 
                 if(_serializer == null || _connections == null)
                 {
-                    return false;
+                    return Task.FromResult(false);
                 }
                 var peerId = _serializer.Deserialize<ulong>(packet.Stream);
                 var connection = _connections.GetConnection(peerId);
@@ -31,13 +32,14 @@ namespace Stormancer
                 {
                     packet.Connection = connection;
                 }
-                return false;
+                return Task.FromResult(false);
             });
 
-            config.AddProcessor((byte)MessageIDTypes.ID_P2P_TUNNEL, async packet =>
+            config.AddProcessor((byte)MessageIDTypes.ID_P2P_TUNNEL, packet =>
             {
+                UnityEngine.Debug.Log("Received p2p tunnel packet");
                 _tunnels.ReceivedFrom(packet.Connection.Id, packet.Stream);
-                return true;
+                return Task.FromResult(true);
             });
         }
     }

@@ -244,5 +244,13 @@ namespace Stormancer
 
         public bool HasPublicIp => !string.IsNullOrEmpty(DedicatedServerEndpoint);
         public string IpPort => DedicatedServerEndpoint + ":" + ServerGamePort;
+
+        /// <summary>
+		/// If using the P2P tunnel, set the port the tunnel will be bound to for clients.
+		/// </summary>
+		/// <remarks>
+		/// This will have no effect on P2P hosts, as multiple clients can be connected to them.
+		/// </remarks>
+		public ushort TunnelPort = 0;
     }
 }

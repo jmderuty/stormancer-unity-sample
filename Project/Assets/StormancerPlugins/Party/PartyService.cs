@@ -110,7 +110,7 @@ namespace Stormancer.Plugins
             {
                 _playerReady = true;
             }
-            SendPlayerPartyStatus();
+            _ = SendPlayerPartyStatus();
         }
 
         public async Task UpdatePlayerData(string data)

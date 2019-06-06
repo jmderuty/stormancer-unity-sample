@@ -104,7 +104,8 @@ namespace Stormancer.Plugins
             {
                 _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "received empty p2p token : I'm the host.");
                 OnRoleReceived?.Invoke("HOST");
-                _tunnel = _scene.RegisterP2PServer(GAMESESSION_P2P_SERVER_ID); 
+                _tunnel = _scene.RegisterP2PServer(GAMESESSION_P2P_SERVER_ID);
+                _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "Tunnel established on host");
             }
             else
             {
@@ -112,19 +113,13 @@ namespace Stormancer.Plugins
                 try
                 {
                     var p2pPeer = await _scene.OpenP2PConnection(p2pToken, cancellationToken);
-                    _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "p2p connection opened.");
                     OnRoleReceived?.Invoke("CLIENT");
-                    _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "CLIENT role received.");
                     OnConnectionOpened?.Invoke(p2pPeer);
-                    _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "OnConnectionOpened event called.");
                     if (ShouldEstablishTunnel)
                     {
-                        _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "Opening P2PTunnel...");
                         _tunnel = await p2pPeer.OpenP2PTunnel(GAMESESSION_P2P_SERVER_ID, cancellationToken);
 
-                        _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "p2p tunnel opened.");
                         OnTunnelOpened?.Invoke(_tunnel);
-                        _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "OnTunnelOpened callback called.");
                     }
                     else
                     {

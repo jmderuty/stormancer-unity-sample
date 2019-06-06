@@ -381,16 +381,16 @@ namespace Stormancer
 
                 if (_scenes.ContainsKey(sceneId) && _scenes.TryRemove(sceneId, out scene) == true)
                 {
-                    scene.Disconnect();
+                    _ = scene.Disconnect();
                 }
             }
              
             public void CloseClient()
             {
+                UnityEngine.Debug.Log("CloseClient");
                 using (_client)
                 {
                     _scenes.Clear();
-                    _client?.Disconnect();
                 }
             }
 
@@ -459,7 +459,7 @@ namespace Stormancer
                     {
                         await scene.Connect();
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         Scene sceneToDelete;
                         _scenes.TryRemove(sceneId, out sceneToDelete);

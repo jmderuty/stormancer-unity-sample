@@ -153,6 +153,7 @@ namespace Stormancer
 
         public void Initialize()
         {
+            UnityEngine.Debug.Log("Initialize scene");
             _host = new ScenePeer(_peer, _handle, _remoteRoutesMap, this);
             Action<ConnectionStateCtx> onNext = (state) =>
             {
@@ -474,12 +475,14 @@ namespace Stormancer
                         }
                         break;
                     case ConnectionState.Disconnecting:
+                        UnityEngine.Debug.Log($"Set scene state disconnecting on scene {Id}");
                         foreach (var plugin in _pluginCtxs)
                         {
                             plugin.SceneDisconnecting?.Invoke(this);
                         }
                         break;
                     case ConnectionState.Disconnected:
+                        UnityEngine.Debug.Log($"Set scene state disconnected on scene {Id}");
                         foreach (var plugin in _pluginCtxs)
                         {
                             plugin.SceneDisconnected?.Invoke(this);
@@ -584,8 +587,6 @@ namespace Stormancer
         {
             var p2pService = DependencyResolver.Resolve<P2PService>();
             var connection = await p2pService.OpenP2PConnection(_peer, p2pToken, ct);
-            _logger.Log(LogLevel.Debug, "Scene.OpenP2PConnection", $"opened p2p connection, {connection.ToString()}");
-            _logger.Log(LogLevel.Debug, "Scene.OpenP2PConnection", $"opened p2p connection, _peer address {_peer.IpAddress}, id {_peer.Id}");
             return new P2PScenePeer(this, connection, p2pService, new P2PConnectToSceneMessage());
         }
 
