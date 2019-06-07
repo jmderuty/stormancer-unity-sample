@@ -690,7 +690,6 @@ namespace Stormancer
                 Logger.Log(LogLevel.Debug, "Client", "Scene disconnected", sceneId);
                 scene.SetConnectionState(new ConnectionStateCtx(ConnectionState.Disconnected, reason));
             }
-            _logger.Log(LogLevel.Debug, "Connection", $"Connection state {connection.ToString()} at the end of function {System.Reflection.MethodBase.GetCurrentMethod().Name}");
         }
 
 
@@ -706,11 +705,6 @@ namespace Stormancer
             {
                 UnityEngine.Debug.Log("Close ServerConnection");
                 _serverConnection.Close();
-            }
-            else
-            {
-
-                UnityEngine.Debug.Log("cannot close serverconnection as it is null");
             }
 
         }
@@ -728,7 +722,6 @@ namespace Stormancer
         {
             if (!this._disposed)
             {
-                UnityEngine.Debug.Log("Dispose");
                 this._disposed = true;
                 Disconnect();
 
@@ -737,11 +730,6 @@ namespace Stormancer
                 {
                     ev(this);
                 }
-            }
-            else
-            {
-
-                UnityEngine.Debug.Log("Dispose but is already disposed");
             }
 
         }
@@ -778,7 +766,6 @@ namespace Stormancer
                     await connection.SetTimeout(_serverTimeout, ct);
                     await connection.UpdatePeerMetadata(ct);
                     await RequestSessionToken(connection, 1, ct);
-                    _logger.Log(LogLevel.Debug, "Connection", $"Connection state {connection.ToString()} at the end of function {System.Reflection.MethodBase.GetCurrentMethod().Name}");
                     return connection;
                 }
                 catch (System.Exception ex)

@@ -55,9 +55,10 @@ namespace Stormancer
             }
             finally
             {
-                if (token.IsCancellationRequested)
+                if (!token.IsCancellationRequested)
                 {
                     // something went wrong, clean up!
+                    _logger.Log(Diagnostics.LogLevel.Error, "P2PTunnelClient", "An error occurred in the P2PTunnelClient, running the onError callback");
                     _onError?.Invoke();
                 }
             }
@@ -80,7 +81,6 @@ namespace Stormancer
                     }
                     catch (AggregateException ex) when (ex.InnerException is ObjectDisposedException)
                     {
-                        UnityEngine.Debug.Log("Correctly dispose the P2PTunnelClient");
                     }
                     catch (System.Exception ex)
                     {

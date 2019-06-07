@@ -132,7 +132,7 @@ namespace Stormancer.Networking.Processors
                 Request request;
                 if (_pendingRequests.TryRemove(id, out request))
                 {
-                    p.Metadata["request"] = request;
+                    p.Metadata["request"] = "" + request.Id;
                     request.LastRefresh = DateTime.UtcNow;
                     if(!request.Complete)
                     {
@@ -159,8 +159,8 @@ namespace Stormancer.Networking.Processors
                     Request request;
                     if (this._pendingRequests.TryRemove(id, out request))
                     {
-                        p.Metadata["request"] = request;
-                        if(!request.Complete)
+                        p.Metadata["request"] = "" + request.Id;
+                        if (!request.Complete)
                         {
                             request.Complete = true;
                             request.TCS.TrySetResult(null);
@@ -184,7 +184,7 @@ namespace Stormancer.Networking.Processors
                 Request request;
                 if (_pendingRequests.TryRemove(id, out request))
                 {
-                    p.Metadata["request"] = request;
+                    p.Metadata["request"] = "" + request.Id;
                     var serializer = p.Serializer();
                     if(!request.Complete)
                     {
@@ -225,7 +225,7 @@ namespace Stormancer.Networking.Processors
 
         public async Task<Packet> SendSystemRequest(IConnection peer, byte msgId, Action<Stream> writer, PacketPriority priority, CancellationToken ct = default(CancellationToken))
         {
-            if(peer != null)
+            if (peer != null)
             {
                 var tcs = new TaskCompletionSource<Packet>();
                 var request = ReserveRequestSlot(msgId, tcs, ct);

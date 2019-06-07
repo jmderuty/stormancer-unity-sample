@@ -165,11 +165,9 @@ namespace Stormancer
             {
                 var candidate = _serializer.Deserialize<ConnectivityCandidate>(context.InputStream);
                 var connection = _connections.GetConnection(candidate.ClientPeer);
-                _logger.Log(LogLevel.Debug, "P2P", $"ClientPeer connection {connection?.ToString()}");
                 var sessionId = P2PSessionId.From(candidate.SessionId);
                 if (connection != null && connection.GetConnectionState().State == ConnectionState.Connected)
                 {
-                    _logger.Log(LogLevel.Debug, "p2p", "Connection already existing and connected");
                     _sessions.UpdateSessionState(sessionId, P2PSessionState.Connected);
                 }
                 else
@@ -203,7 +201,6 @@ namespace Stormancer
                 var sessionId = P2PSessionId.From(candidate.SessionId);
                 if (connection != null && connection.GetConnectionState().State == ConnectionState.Connected)
                 {
-                    _logger.Log(LogLevel.Warn, "p2p", $"Connection with {candidate.ListeningPeer} already existing and connected");
                     _sessions.UpdateSessionState(sessionId, P2PSessionState.Connected);
                     context.Send(stream =>
                     {

@@ -156,17 +156,6 @@ namespace Stormancer.Networking
             {
                 for (var packet = server.Receive(); packet != null; packet = server.Receive())
                 {
-                    /*//DEBUG
-                    if(Enum.IsDefined(typeof(MessageIDTypes), packet.data[0]))
-                    {
-                        _logger.Log(LogLevel.Debug, "Debug", $"Received message {(MessageIDTypes)packet.data[0]}");
-                    }
-                    else
-                    {
-                        _logger.Log(LogLevel.Debug, "Debug", $"Received message {(DefaultMessageIDTypes)packet.data[0]}");
-                    }
-                    //ENDDEBUG*/
-
                     switch (packet.data[0])
                     {
                         case (byte)DefaultMessageIDTypes.ID_CONNECTION_REQUEST_ACCEPTED:
@@ -178,7 +167,6 @@ namespace Stormancer.Networking
                             {
                                 PendingConnection pendingConnection;
                                 _pendingConnections.TryPeek(out pendingConnection);
-                                _logger.Log(LogLevel.Debug, "Connection", $"Connection resquest to {pendingConnection.Id} accepted");
 
                                 if (pendingConnection.CancellationToken.IsCancellationRequested)
                                 {
@@ -256,7 +244,6 @@ namespace Stormancer.Networking
                         // Stormancer messages types
                         case (byte)MessageIDTypes.ID_CONNECTION_RESULT:
                             {
-                                _logger.Log(LogLevel.Debug, "Connection", "ID_CONNECTION_RESULT message received");
                                 string packetSystemAddressStr = packet.systemAddress.ToString(true, ':');
                                 if (_pendingConnections.Count > 0)
                                 {
@@ -294,7 +281,6 @@ namespace Stormancer.Networking
                             break;
                         case (byte)MessageIDTypes.ID_ADVERTISE_PEERID:
                             {
-                                _logger.Log(LogLevel.Debug, "Connection", "PeerId advertised");
                                 string packetSystemAddressStr = packet.systemAddress.ToString(true, ':');
                                 string parentId;
                                 string id;
@@ -497,10 +483,8 @@ namespace Stormancer.Networking
             if (_peer != null)
             {
                 var connection = new RakNetConnection(raknetGuid, peerId, key, _peer, _logger, _dependencyResolver);
-                _logger.Log(LogLevel.Debug, "RaknetTransport", $"Created new raknetconnection {connection}");
                 connection.OnClose += (reason) =>
                 {
-                    UnityEngine.Debug.Log($"Closing peer connection {_peer.ToString()}");
                     _peer.CloseConnection(raknetGuid, true);
                 };
                 _connections.TryAdd(raknetGuid.g, connection);
@@ -653,12 +637,10 @@ namespace Stormancer.Networking
 
         private void OnDisconnection(ulong guid, string reason)
         {
-            UnityEngine.Debug.Log("OnDisconnection");
             var connection = RemoveConnection(guid);
 
             if (connection != null)
             {
-                UnityEngine.Debug.Log("OnDisconnection connection is not null");
                 if (connection.CloseReason != "")
                 {
                     reason = connection.CloseReason;
@@ -670,7 +652,6 @@ namespace Stormancer.Networking
             }
             else
             {
-                UnityEngine.Debug.Log("OnDisconnection connection is null");
                 _logger.Log(LogLevel.Warn, "RakNetTransport", $"Attempting to disconnect from unknown peer (guid: {guid})");
             }
         }
@@ -705,9 +686,7 @@ namespace Stormancer.Networking
                 {
                     await Task.Delay(300 * i, cts.Token);
 
-                    _logger.Log(LogLevel.Debug, "p2p", $"sending ping {i}");
                     var result = await SendPingImplTask(address);
-                    _logger.Log(LogLevel.Debug, "p2p", $"ping {i} returned {result}");
                     return result;
 
                 }, cts.Token));
@@ -716,7 +695,6 @@ namespace Stormancer.Networking
             _ = Task.Run(async () =>
              {
                  await Task.WhenAll(tasks);
-                 _logger.Log(LogLevel.Debug, "p2p", "All pings are sent.");
 
                  var sent = false;
                  foreach (var t in tasks)
@@ -732,10 +710,6 @@ namespace Stormancer.Networking
                  {
                      _logger.Log(LogLevel.Error, "RakNetTransport", $"Pings to {address} failed : unreachable address");
                      tcs.SetResult(-1);
-                 }
-                 else
-                 {
-                     _logger.Log(LogLevel.Debug, "RakNetTransport", $"Pings to {address} Success");
                  }
              }, cts.Token);
 

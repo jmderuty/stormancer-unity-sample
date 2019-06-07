@@ -37,7 +37,6 @@ namespace Stormancer
 
             config.AddProcessor((byte)MessageIDTypes.ID_P2P_TUNNEL, packet =>
             {
-                UnityEngine.Debug.Log("Received p2p tunnel packet");
                 _tunnels.ReceivedFrom(packet.Connection.Id, packet.Stream);
                 return Task.FromResult(true);
             });

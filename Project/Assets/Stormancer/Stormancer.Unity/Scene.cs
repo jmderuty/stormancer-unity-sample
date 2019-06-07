@@ -153,7 +153,6 @@ namespace Stormancer
 
         public void Initialize()
         {
-            UnityEngine.Debug.Log("Initialize scene");
             _host = new ScenePeer(_peer, _handle, _remoteRoutesMap, this);
             Action<ConnectionStateCtx> onNext = (state) =>
             {
@@ -475,14 +474,12 @@ namespace Stormancer
                         }
                         break;
                     case ConnectionState.Disconnecting:
-                        UnityEngine.Debug.Log($"Set scene state disconnecting on scene {Id}");
                         foreach (var plugin in _pluginCtxs)
                         {
                             plugin.SceneDisconnecting?.Invoke(this);
                         }
                         break;
                     case ConnectionState.Disconnected:
-                        UnityEngine.Debug.Log($"Set scene state disconnected on scene {Id}");
                         foreach (var plugin in _pluginCtxs)
                         {
                             plugin.SceneDisconnected?.Invoke(this);

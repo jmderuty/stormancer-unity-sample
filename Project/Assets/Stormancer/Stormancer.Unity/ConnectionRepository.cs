@@ -73,8 +73,6 @@ namespace Stormancer
         {
             if(connection != null)
             {
-                UnityEngine.Debug.Log($"Closing connection {connection.ToString()}");
-                _logger.Log(LogLevel.Debug, "ConnectionRepository", $"Closing connection {connection.ToString()}");
                 _connections.TryRemove(connection.Id, out _);
                 _connectionsByKey.TryRemove(connection.Key, out _);
                 connection.Close(reason);
@@ -118,24 +116,8 @@ namespace Stormancer
                     var key = connection.Key;
                     connection.OnClose += (reason) =>
                     {
-                        UnityEngine.Debug.Log($"Closing connection {connection.ToString()}");
-                        _logger.Log(LogLevel.Debug, "ConnectionRepository", $"Closing connection {connection.ToString()}");
-                        if(_connections.TryRemove(pId, out _))
-                        {
-                            UnityEngine.Debug.Log($"Succesfully removed connection with id {pId}");
-                        }
-                        else
-                        {
-                            UnityEngine.Debug.Log($"Failed to remove connection with id {pId}");
-                        }
-                        if(_connectionsByKey.TryRemove(key, out _))
-                        {
-                            UnityEngine.Debug.Log($"Succesfully removed connection with key {key}");
-                        }
-                        else
-                        {
-                            UnityEngine.Debug.Log($"Failed to remove connection with key {key}");
-                        }
+                        _connections.TryRemove(pId, out _);
+                        _connectionsByKey.TryRemove(key, out _);
                     };
                     _connections.TryAdd(pId, connection);
                     _connectionsByKey.TryAdd(id, connection);

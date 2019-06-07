@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
+using Stormancer.Diagnostics;
 
 namespace Stormancer
 {
@@ -185,7 +186,6 @@ namespace Stormancer
             {
                 if(client != null)
                 {
-                    UnityEngine.Debug.Log($"sending message to UDP port {client.HostPort}");
                     client.Client.Send(buffer, read, new IPEndPoint(IPAddress.Parse("127.0.0.1"), client.HostPort));
                 }
                 else

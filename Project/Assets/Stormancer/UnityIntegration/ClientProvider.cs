@@ -387,7 +387,6 @@ namespace Stormancer
              
             public void CloseClient()
             {
-                UnityEngine.Debug.Log("CloseClient");
                 using (_client)
                 {
                     _scenes.Clear();

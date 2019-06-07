@@ -60,7 +60,6 @@ namespace Stormancer.Plugins
             var gameState = _gameConnectionStateCtx.State;
             if (gameState != GameConnectionState.Disconnected && gameState != GameConnectionState.Disconnecting)
             {
-                UnityEngine.Debug.Log("AuthenticationService logout");
                 SetConnectionState(new GameConnectionStateCtx(GameConnectionState.Disconnecting));
                 var authScene = await GetAuthenticationScene();
 

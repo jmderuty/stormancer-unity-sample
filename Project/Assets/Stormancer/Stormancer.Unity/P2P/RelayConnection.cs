@@ -16,7 +16,6 @@ namespace Stormancer
         private ulong _remotePeerId;
         private string _ipAddress;
         private DateTime _connectionDate = DateTime.Now;
-        private IDependencyResolver _dependencyResolver;
         private ISerializer _serializer;
 
         public string IpAddress => _ipAddress;
@@ -25,7 +24,7 @@ namespace Stormancer
 
         public string Key => _p2pSessionId.ToString();
 
-        public IDependencyResolver DependencyResolver => _dependencyResolver;
+        public IDependencyResolver DependencyResolver { get; }
 
         public ulong Id => _remotePeerId;
 
@@ -45,6 +44,7 @@ namespace Stormancer
             _remotePeerId = remotePeerId;
             _ipAddress = address;
             _serializer = serializer;
+            DependencyResolver = new StormancerResolver((StormancerResolver)serverConnection.DependencyResolver);
         }
 
         public void Close(string reason = "")

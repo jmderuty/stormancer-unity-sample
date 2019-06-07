@@ -28,6 +28,19 @@ namespace Stormancer.Networking
             while (!processed && count < 40) // Max 40 layers
             {
                 msgType = (byte)packet.Stream.ReadByte();
+                if(count > 0)
+                {
+                    /*//DEBUG
+                    if (Enum.IsDefined(typeof(MessageIDTypes), msgType))
+                    {
+                        UnityEngine.Debug.Log($"Message was in fact a {(MessageIDTypes)msgType}");
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.Log($"Message was in fact a {(RakNet.DefaultMessageIDTypes)msgType}");
+                    }
+                    //ENDDEBUG*/
+                }
                 Func<Packet, Task<bool>> handler;
                 if (_handlers.TryGetValue(msgType, out handler))
                 {
