@@ -10,34 +10,22 @@ namespace Stormancer
 {
     public class ClientBehaviour : MonoBehaviour
     {
-        private string _accountId;
-        private string _applicationName;
+#warning TODO: Setup accountId, applicationName and endpoints.
+        private string _accountId = "unity";
+        private string _applicationName = "dev";
 
-        private List<string> _serverEndpoints = new List<string>();
+        private List<string> _serverEndpoints = new List<string>() { "http://127.0.0.1" };
 
         private bool _debugLog = true;
-        private bool _localServer = true; 
 
         public StringEvent OnDisconnected;
 
-        private IAuthenticationProvider _provider;
+        private IAuthenticationProvider _authenticationProvider;
 
         public void Awake()
         {
-            if(_localServer)
-            {
-                _accountId = "unity";
-                _applicationName = "dev";
-                _serverEndpoints.Add("http://192.168.2.103");
-            }
-            else
-            {
-                _accountId = "virtual-regatta";
-                _applicationName = "dev-server";
-                _serverEndpoints.Add("http://gc3.stormancer.com");
-            }
             DontDestroyOnLoad(gameObject);
-            _provider = new RandomAuthenticationProvider();
+            _authenticationProvider = new RandomAuthenticationProvider();
             Initialize();
         }
 
@@ -46,8 +34,8 @@ namespace Stormancer
         {
             ClientProvider.SetAccountId(_accountId);
             ClientProvider.SetApplicationName(_applicationName);
-            _provider.Initialize();
-            ClientProvider.OnRequestAuthParameters = _provider.GetAuthArgs();
+            _authenticationProvider.Initialize();
+            ClientProvider.OnRequestAuthParameters = _authenticationProvider.GetAuthArgs();
 
             if (_serverEndpoints.Any())
             {

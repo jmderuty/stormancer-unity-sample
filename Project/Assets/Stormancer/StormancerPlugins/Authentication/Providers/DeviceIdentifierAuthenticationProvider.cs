@@ -1,6 +1,7 @@
 ﻿
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace Stormancer.Plugins
 {
@@ -11,7 +12,11 @@ namespace Stormancer.Plugins
 
         public void Initialize()
         {
-            _identifier = UnityEngine.SystemInfo.deviceUniqueIdentifier;
+            _identifier = SystemInfo.deviceUniqueIdentifier;
+            if (Application.isEditor)
+            {
+                _identifier += "_Editor";
+            }
             ClientProvider.ActivateAuthenticationPlugin();
             ClientProvider.ActivateGameSessionPlugin();
             ClientProvider.ActivateGameFinderPlugin();
