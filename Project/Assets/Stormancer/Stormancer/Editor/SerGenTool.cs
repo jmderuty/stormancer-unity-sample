@@ -13,12 +13,13 @@ using MsgPack.Serialization;
 //[InitializeOnLoad]
 public class SerGenTool
 {
+    static readonly string MsgpackserializerFilepath = Application.dataPath + @"\Stormancer\Stormancer\Stormancer.Unity\Infrastructure\MsgPackSerializer.cs";
+    static readonly string OutputDirectory = Application.dataPath + @"\Stormancer\Stormancer\Specific";
 
     [MenuItem("Stormancer/Tools/Generate Serializer")]
     static void GenerateSerializer()
     {
         string finalNamespace = "GeneratedSerializers";
-        string finalOutputDirectory = Application.dataPath + "/Stormancer/Specific";
         ClearSerializer();
 
         string relativePathAssemblyDll = Application.dataPath + @"\..\Library\ScriptAssemblies\Assembly-CSharp.dll";
@@ -31,7 +32,7 @@ public class SerGenTool
               new SerializerCodeGenerationConfiguration
               {
                   Namespace = finalNamespace,
-                  OutputDirectory = finalOutputDirectory,
+                  OutputDirectory = SerGenTool.OutputDirectory,
                   EnumSerializationMethod = 0, // You can tweak it to use ByUnderlyingValue as you like.
                   IsRecursive = true, // Set depenendent serializers are also generated.
                   PreferReflectionBasedSerializer = false, // Set true if you want to use reflection based collection serializer, false if you want to get generated collection serializers.
@@ -48,7 +49,7 @@ public class SerGenTool
         }
 
         Debug.Log("Editing MsgPackSerializer.cs file.");
-        AddRegisterGeneratedSerializer(finalOutputDirectory, finalNamespace);
+        AddRegisterGeneratedSerializer(OutputDirectory, finalNamespace);
         Debug.Log("MsgPackSerializer.cs edited");
 
         Debug.Log("SerGen job done");
@@ -60,15 +61,13 @@ public class SerGenTool
     static void ClearSerializer()
     {
         string finalNamespace = "GeneratedSerializers";
-        string finalOutputDirectory = Application.dataPath + "/Stormancer/Specific";
-        DeleteOldFiles(finalOutputDirectory, finalNamespace);
+        DeleteOldFiles(OutputDirectory, finalNamespace);
         //MsgPackSerializer.cs path
-        string msgpackserializerFilepath = Application.dataPath + @"\Stormancer\Stormancer.Unity\Infrastructure\MsgPackSerializer.cs";
         List<string> lines;
         int startLine;
         int endLine;
 
-        ParseFile(msgpackserializerFilepath, out lines, out startLine, out endLine);
+        ParseFile(MsgpackserializerFilepath, out lines, out startLine, out endLine);
 
         if (endLine == -1 || startLine == -1)
         {
@@ -81,7 +80,7 @@ public class SerGenTool
             lines.RemoveRange(startLine + 1, endLine - startLine - 1);
         }
 
-        File.WriteAllLines(msgpackserializerFilepath, lines.ToArray());
+        File.WriteAllLines(MsgpackserializerFilepath, lines.ToArray());
     }
 
     private static void DeleteOldFiles(string OutputDirectory, string nameSpace)
@@ -96,14 +95,12 @@ public class SerGenTool
 
     private static void AddRegisterGeneratedSerializer(string OutputDirectory, string nameSpace)
     {
-        //MsgPackSerializer.cs path
-        string msgpackserializerFilepath = Application.dataPath + @"\Stormancer\Stormancer.Unity\Infrastructure\MsgPackSerializer.cs";
 
         List<string> lines;
         int startLine;
         int endLine;
 
-        ParseFile(msgpackserializerFilepath, out lines, out startLine, out endLine);
+        ParseFile(MsgpackserializerFilepath, out lines, out startLine, out endLine);
 
         if (endLine == -1 || startLine == -1)
         {
@@ -128,7 +125,7 @@ public class SerGenTool
             lines.InsertRange(startLine + 1, generatedSerializers);
         }
 
-        File.WriteAllLines(msgpackserializerFilepath, lines.ToArray());
+        File.WriteAllLines(MsgpackserializerFilepath, lines.ToArray());
     }
 
     private static void ParseFile(string path, out List<string> lines, out int startLine, out int endLine)
