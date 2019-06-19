@@ -20,6 +20,7 @@ namespace Stormancer
         public P2PSession()
         {
             RemotePeer = 0;
+            Status = P2PSessionState.Unknown;
         }
 
     }

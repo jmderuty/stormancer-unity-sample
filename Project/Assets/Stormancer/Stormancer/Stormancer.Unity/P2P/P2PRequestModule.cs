@@ -2,11 +2,13 @@
 using Stormancer.Networking;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 using System.Text;
 using Stormancer.Diagnostics;
 using Stormancer.Core;
 using Stormancer.Plugins;
 using System.Threading.Tasks;
+using Stormancer.Dto;
 
 namespace Stormancer
 {
@@ -57,7 +59,71 @@ namespace Stormancer
                 return Task.CompletedTask;
             });
 
-            builder.Service((byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, async context =>
+            builder.Service((byte)SystemRequestIDTypes.ID_CONNECTED_TO_SCENE, async context =>
+            {
+                var sceneId = _serializer.Deserialize<string>(context.InputStream);
+                Scene scene = await _client.GetConnectedScene(sceneId);
+                var connection = context.Packet.Connection;
+                scene.SetPeerConnected(connection);
+                context.Send(stream => {  });
+            });
+
+            builder.Service((byte)SystemRequestIDTypes.ID_CONNECT_TO_SCENE, async context =>
+            {
+                var connectToSceneMessage = _serializer.Deserialize<P2PConnectToSceneMessage>(context.InputStream);
+                var connection = context.Packet.Connection;
+                Scene scene = await _client.GetConnectedScene(connectToSceneMessage.SceneId);
+                var p2pService = scene.DependencyResolver.Resolve<P2PService>();
+                var handles = connection.DependencyResolver.Resolve<List<Scene>>();
+                byte handle = 0;
+                bool success = false;
+
+                for(byte i = 0; i < 150; i++)
+                {
+                    if(handles.ElementAtOrDefault(i) == null)
+                    {
+                        handle = (byte)(i + (byte)MessageIDTypes.ID_SCENES);
+                        handles.Insert(i, scene);
+                        success = true;
+                        break;
+                    }
+                }
+                if(!success)
+                {
+                    throw new InvalidOperationException("Failed to generate handle for scene.");
+                }
+
+
+                var connectToSceneResponse = new P2PConnectToSceneMessage();
+                connectToSceneResponse.SceneId = scene.Address.toUri();
+                connectToSceneResponse.SceneHandle = handle;
+
+                foreach (var r in scene.LocalRoutes)
+                {
+                    if(((byte)r.Filter & (byte)MessageOriginFilter.Peer) > 0)
+                    {
+                        var routeDto = new RouteDto();
+                        routeDto.Handle = r.Handle;
+                        routeDto.Name = r.Name;
+                        routeDto.Metadata = r.Metadata;
+                        connectToSceneResponse.Routes.Add(routeDto);
+                    }
+                }
+
+                connectToSceneResponse.ConnectionMetadata = context.Packet.Connection.Metadata;
+                connectToSceneResponse.SceneMetadata = scene.GetSceneMetadata();
+                _logger.Log(LogLevel.Debug, "Debug", "Send response ID_CONNECT_TO_SCENE");
+                context.Send(stream =>
+                {
+                    _serializer.Serialize(connectToSceneResponse, stream);
+                });
+
+                scene.AddConnectedPeer(connection, p2pService, connectToSceneMessage);
+                _logger.Log(LogLevel.Debug, "Debug", "Add connectedPeer");
+                
+            });
+
+                builder.Service((byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, async context =>
             {
                 var sceneId = _serializer.Deserialize<string>(context.InputStream);
                 var reason = _serializer.Deserialize<string>(context.InputStream);

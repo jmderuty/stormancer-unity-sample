@@ -1,6 +1,7 @@
 ﻿
 using Stormancer.Core;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using UniRx;
@@ -11,12 +12,28 @@ namespace Stormancer.Plugins
     {
         private Client _client;
         private Task<GameSessionContainer> _currentGameSession;
-        private string _mapName;
+        private bool _useTunnel;
+        public Action<IP2PScenePeer> OnPeerConnected { get; set; }
+        public Scene GetScene()
+        {
+            if(_currentGameSession.IsCompleted)
+            {
+                return _currentGameSession.Result.Scene;
+            }
+            return null;
+        }
 
         public GameSession(Client client)
         {
             _client = client;
             _currentGameSession = Task.FromResult(new GameSessionContainer());
+        }
+
+        public async Task<IEnumerable<SessionPlayer>> GetConnectedPlayer()
+        {
+            var gameSessionContainer = await _currentGameSession;
+            var service = gameSessionContainer.Service;
+            return service.ConnectedPlayers;
         }
 
         /// <summary>
@@ -26,7 +43,7 @@ namespace Stormancer.Plugins
         /// <param name="mapName"> Name of the map of the game session</param>
         /// <param name="cancellationToken"> Connection cancellation token </param>
         /// <returns> The parameters to connect to the game session</returns>
-        public async Task ConnectToGameSession(string token, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task ConnectToGameSession(string token, bool useTunnel, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (!_currentGameSession.IsCompleted)
             {
@@ -39,10 +56,11 @@ namespace Stormancer.Plugins
             // Disconnect from gameSession if the current ct equal the pending CT.
            
             await DisconnectFromGameSession();
-            _currentGameSession = ConnectToGameSessionImpl(token, cancellationToken);
+            _currentGameSession = ConnectToGameSessionImpl(token, useTunnel, cancellationToken);
+            _useTunnel = useTunnel;
         }
 
-        public async Task<GameSessionConnectionParameters> EstablishDirectConnection(bool useTunnel, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<GameSessionConnectionParameters> EstablishDirectConnection(CancellationToken cancellationToken = default(CancellationToken))
         {
             var container = await _currentGameSession;
             var p2pToken = await P2PTokenRequest(container, cancellationToken);
@@ -50,10 +68,7 @@ namespace Stormancer.Plugins
             var logger = container.Scene.DependencyResolver.Resolve<ILogger>();
             try
             {
-                if (useTunnel)
-                {
-                    await service.InitializeTunnel(p2pToken, cancellationToken);
-                }
+                await service.InitializeTunnel(p2pToken, _useTunnel, cancellationToken);
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
@@ -163,7 +178,7 @@ namespace Stormancer.Plugins
         /// <param name="token"> Token of the game session scene</param>
         /// <param name="cancellationToken"></param>
         /// <returns> The container of the game session</returns>
-        private async Task<GameSessionContainer> ConnectToGameSessionImpl(string token, CancellationToken cancellationToken)
+        private async Task<GameSessionContainer> ConnectToGameSessionImpl(string token, bool useTunnel, CancellationToken cancellationToken)
         {
             var gameSessionScene  = await _client.ConnectToPrivateScene(token, (scene) => { }, cancellationToken);
             var container = new GameSessionContainer();
@@ -184,25 +199,32 @@ namespace Stormancer.Plugins
                 }
             });
 
+            gameSessionScene.OnPeerConnected += peer =>
+            {
+                OnPeerConnected?.Invoke(peer);
+            };
+
             container.Service.OnRoleReceived += (role) =>
             {
                 GameSessionConnectionParameters parameters = new GameSessionConnectionParameters();
-                parameters.IsHost = (role == "HOST"); 
-                if(parameters.IsHost)
+                if(parameters.IsHost || role == "CLIENT" && !useTunnel)
                 {
+                    parameters.IsHost = (role == "HOST");
+                    OnRoleReceived?.Invoke(parameters);
                     sessionReadyTcs.SetResult(parameters);
                 }
-                OnRoleReceived?.Invoke(parameters);
             };
-
-            container.Service.OnTunnelOpened += (p2pTunnel) =>
+            if(useTunnel)
             {
-                GameSessionConnectionParameters parameters = new GameSessionConnectionParameters();
-                parameters.IsHost = false;
-                parameters.Endpoint = p2pTunnel.Ip + ":" + p2pTunnel.Port;
-                OnTunnelOpened?.Invoke(parameters);
-                sessionReadyTcs.SetResult(parameters);
-            };
+                container.Service.OnTunnelOpened += (p2pTunnel) =>
+                {
+                    GameSessionConnectionParameters parameters = new GameSessionConnectionParameters();
+                    parameters.IsHost = false;
+                    parameters.Endpoint = p2pTunnel.Ip + ":" + p2pTunnel.Port;
+                    OnTunnelOpened?.Invoke(parameters);
+                    sessionReadyTcs.SetResult(parameters);
+                };
+            }
 
             container.Service.OnAllPlayerReady += () =>
             {
@@ -258,6 +280,8 @@ namespace Stormancer.Plugins
         public Action<ConnectionStateCtx> OnGameSessionConnectionChanged { get; set; }
 
         public Action OnShutdownReceived { get; set; }
+        public Action<Scene> OnConnectingToScene { get; set; }
+        public Action<Scene> OnDisconnectingFromScene { get; set; }
         #endregion
     }
 }

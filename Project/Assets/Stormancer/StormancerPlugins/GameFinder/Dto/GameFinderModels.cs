@@ -4,6 +4,13 @@ using System.Collections.Generic;
 namespace Stormancer.Plugins
 {
 
+    [MsgPackDto]
+    public class GameFinderParameters
+    {
+        [MessagePackMember(0)]
+        public string GameId { get; set; }
+    }
+
     public class GameFinderStatusChangedEvent
     {
         public GameFinderStatus Status { get; set; }

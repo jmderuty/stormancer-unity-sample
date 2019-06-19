@@ -119,7 +119,7 @@ namespace Stormancer
 
         public static void Send<T>(this Scene scene, string route, T data)
         {
-            scene.SendPacket(route, s =>
+            scene.Send(route, s =>
             {
                 scene.HostConnection.Serializer().Serialize(data, s);
             });
@@ -187,14 +187,14 @@ namespace Stormancer
         /// <param name="route">The route of the procedure</param>
         /// <param name="handler">A method that implement the procedure logic</param>
         /// <param name="ordered">True if order of the partial responses should be preserved when sent to the client, false otherwise.</param>
-        public static void AddProcedure(this Scene scene, string route, Func<RequestContext<IScenePeer>, Task> handler, bool ordered = true)
+        public static void AddProcedure(this Scene scene, string route, Func<RequestContext<IScenePeer>, Task> handler, MessageOriginFilter filter = MessageOriginFilter.Host, bool ordered = true)
         {
             var rpcService = scene.DependencyResolver.Resolve<RpcClientPlugin.RpcService>();
             if (rpcService == null)
             {
                 throw new NotSupportedException("RPC plugin not available.");
             }
-            rpcService.AddProcedure(route, handler, ordered);
+            rpcService.AddProcedure(route, handler, filter, ordered);
         }
 
         /// <summary>

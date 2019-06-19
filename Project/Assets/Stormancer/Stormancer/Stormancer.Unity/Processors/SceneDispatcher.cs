@@ -11,7 +11,6 @@ namespace Stormancer.Processors
 {
     internal class SceneDispatcher : IPacketProcessor
     {
-        private Scene[] _scenes = new Scene[(int)byte.MaxValue - (int)MessageIDTypes.ID_SCENES + 1];
         private ConcurrentDictionary<byte, ConcurrentQueue<Packet>> _waitingPackets = new ConcurrentDictionary<byte, ConcurrentQueue<Packet>>();
 
         public void RegisterProcessor(PacketProcessorConfig config)
@@ -24,13 +23,53 @@ namespace Stormancer.Processors
             return (byte)(sceneHandle - MessageIDTypes.ID_SCENES);
         }
 
+        private List<Scene> getHandles(IConnection connection)
+        {
+            return connection.DependencyResolver.Resolve<List<Scene>>();
+        }
+
+        public void AddScene(IConnection connection, Scene scene)
+        {
+            if(connection != null && scene != null)
+            {
+                var handles = getHandles(connection);
+                if(handles != null)
+                {
+                    handles.Insert(scene.Host.Handle - (byte)MessageIDTypes.ID_SCENES, scene);
+                    ConcurrentQueue<Packet> waitingPackets;
+                    if (_waitingPackets.TryRemove(scene.Host.Handle, out waitingPackets))
+                    {
+                        Packet packet;
+                        while (waitingPackets.TryDequeue(out packet))
+                        {
+                            packet.Metadata["scene"] = scene;
+                            scene.HandleMessage(packet);
+                        }
+                    }
+                }
+            }
+        }
+
+        public void RemoveScene(IConnection connection, byte sceneHandle)
+        {
+            if (connection != null)
+            {
+                var handles = getHandles(connection);
+                if (handles != null)
+                {
+                    handles.RemoveAt(sceneHandle - (byte)MessageIDTypes.ID_SCENES);
+                }
+            }
+        }
+
         private bool Handler(byte sceneHandle, Packet packet)
         {
             if (sceneHandle < (byte)MessageIDTypes.ID_SCENES)
             {
                 return false;
             }
-            var scene = _scenes[sceneHandle - (byte)MessageIDTypes.ID_SCENES];
+            var handles = getHandles(packet.Connection);
+            var scene = handles.ElementAt(sceneHandle - (byte)MessageIDTypes.ID_SCENES);
             if (scene == null)
             {
                 var queue = _waitingPackets.GetOrAdd(sceneHandle, handle => new ConcurrentQueue<Packet>());
@@ -40,33 +79,22 @@ namespace Stormancer.Processors
             else
             {
                 packet.Metadata["scene"] = scene;
-                scene.HandleMessage(packet);
+                MainThread.Post(() =>
+                {
+                    scene.HandleMessage(packet);
+                });
 
                 return true;
             }
         }
 
-        public void AddScene(Scene scene)
-        {
-            _scenes[scene.Handle - (byte)MessageIDTypes.ID_SCENES] = scene;
-            ConcurrentQueue<Packet> waitingPackets;
-            if (_waitingPackets.TryRemove(scene.Handle, out waitingPackets))
-            {
-                Packet packet;
-                while (waitingPackets.TryDequeue(out packet))
-                {
-                    packet.Metadata["scene"] = scene;
-                    scene.HandleMessage(packet);
-                }
-            }
-        }
-
         public Scene GetScene(IConnection connection, byte sceneHandle)
         {
+            var handles = getHandles(connection);
             var index = GetSceneIndex(sceneHandle);
-            if (index < _scenes.Length)
+            if (index < handles.Count)
             {
-                return _scenes[index];
+                return handles.ElementAt(index);
             }
             else
             {
@@ -74,9 +102,5 @@ namespace Stormancer.Processors
             }
         }
 
-        public void RemoveScene(byte sceneHandle)
-        {
-            _scenes[sceneHandle - (byte)MessageIDTypes.ID_SCENES] = null;
-        }
     }
 }

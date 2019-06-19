@@ -10,34 +10,32 @@ namespace Stormancer
     public class P2PScenePeer : IP2PScenePeer
     {
         private Scene _scene;
-        private IConnection _connection;
         private P2PService _p2p;
-        private byte _handle;
         private Dictionary<string, string> _metadata = new Dictionary<string, string>();
-        private Dictionary<string, Route> _remoteRouteMap = new Dictionary<string, Route>();
+
+        public Dictionary<string, Route> Routes { get; } = new Dictionary<string, Route>();
+        public IConnection Connection { get; }
+        public byte Handle { get; }
+        public ulong Id => Connection.Id;
 
         public P2PScenePeer(Scene scene, IConnection connection, P2PService p2p, P2PConnectToSceneMessage message)
         {
             _scene = scene;
-            _connection = connection;
+            Connection = connection;
             _p2p = p2p;
-            _handle = message.SceneHandle;
-            _metadata = message.Metadata;
+            Handle = message.SceneHandle;
+            _metadata = message.SceneMetadata;
+            foreach(var route in message.Routes)
+            {
+                Routes.Add(route.Name, new Route(route.Name, route.Handle, MessageOriginFilter.Peer, route.Metadata));
+            }
             if(connection == null)
             {
                 throw new ArgumentNullException("Connection cannot be null");
             }
-
         }
-
-        public ulong Id => _connection.Id;
 
         public void Disconnect()
-        {
-            throw new NotImplementedException();
-        }
-
-        public T GetComponent<T>()
         {
             throw new NotImplementedException();
         }
@@ -48,7 +46,7 @@ namespace Stormancer
             {
                 throw new InvalidOperationException("Unable to establish P2P tunnel: scene destroyed");
             }
-            return await _p2p.OpenTunnel(_connection.Id, _scene.Id + "." + serverId, cancellationToken);
+            return await _p2p.OpenTunnel(Connection.Id, _scene.Id + "." + serverId, cancellationToken);
 
         }
 
@@ -64,14 +62,14 @@ namespace Stormancer
                 throw new InvalidOperationException("Unable to send : scene destroyed");
             }
             Route route;
-            if(!_remoteRouteMap.TryGetValue(routeName, out route))
+            if(!Routes.TryGetValue(routeName, out route))
             {
                 throw new InvalidOperationException("The route '" + routeName + "' doesn't exist on the scene");
             }
-            var channelUid = _connection.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid($"P2PScenePeer_{_scene.Id}_{routeName}");
-            _connection.SendSystem(stream => 
+            var channelUid = Connection.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid($"P2PScenePeer_{_scene.Id}_{routeName}");
+            Connection.SendSystem(stream => 
             {
-                stream.WriteByte(_handle);
+                stream.WriteByte(Handle);
                 writer?.Invoke(stream);
             }, channelUid, priority, reliability);
         }

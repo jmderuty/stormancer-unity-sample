@@ -11,6 +11,9 @@ using UniRx;
 using Stormancer.Dto;
 using Stormancer.Diagnostics;
 using System.Threading;
+using Stormancer.Networking;
+using Stormancer.Networking.Processors;
+using Stormancer.Client45;
 
 namespace Stormancer
 {
@@ -24,7 +27,6 @@ namespace Stormancer
     {
         private readonly IConnection _peer;
         private string _token;
-        private byte _handle;
         private ILogger _logger;
         private Client _client;
         private bool _connectionStateObservableCompleted = false;
@@ -32,15 +34,6 @@ namespace Stormancer
         private readonly Dictionary<string, string> _metadata;
 
         private readonly PluginBuildContext[] _pluginCtxs;
-
-
-        /// <summary>
-        /// A byte representing the index of the scene for this peer.
-        /// </summary>
-        /// <remarks>
-        /// The index is used internally by Stormancer to optimize bandwidth consumption. That means that Stormancer clients can connect to only 256 scenes simultaneously.
-        /// </remarks>
-        public byte Handle { get { return _handle; } }
 
         /// <summary>
         /// A string representing the unique Id of the scene.
@@ -91,7 +84,7 @@ namespace Stormancer
             }
         }
 
-        public Dictionary<ulong, IScenePeer> ConnectedPeers { get; } = new Dictionary<ulong, IScenePeer>();
+        public Dictionary<ulong, IP2PScenePeer> ConnectedPeers { get; } = new Dictionary<ulong, IP2PScenePeer>();
 
         private Dictionary<string, Route> _localRoutesMap = new Dictionary<string, Route>();
         private Dictionary<string, Route> _remoteRoutesMap = new Dictionary<string, Route>();
@@ -122,6 +115,8 @@ namespace Stormancer
             }
         }
 
+        public Action<IP2PScenePeer> OnPeerConnected { get; set; }
+
         public IDependencyResolver DependencyResolver { get; private set; }
 
         internal Scene(IConnection connection, Client client, SceneAddress sceneAddress, string token, Stormancer.Dto.SceneInfosDto dto, StormancerResolver parentDependencyResolver, PluginBuildContext[] pluginCtxs)
@@ -137,7 +132,7 @@ namespace Stormancer
 
             foreach (var route in dto.Routes)
             {
-                _remoteRoutesMap.Add(route.Name, new Route(route.Name, route.Handle, route.Metadata));
+                _remoteRoutesMap.Add(route.Name, new Route(route.Name, route.Handle, MessageOriginFilter.Host, route.Metadata));
             }
         }
 
@@ -146,7 +141,6 @@ namespace Stormancer
 
         public void Initialize()
         {
-            _host = new ScenePeer(_peer, _handle, _remoteRoutesMap, this);
             Action<ConnectionStateCtx> onNext = (state) =>
             {
                 _connectionState = state;
@@ -229,7 +223,7 @@ namespace Stormancer
         /// <param name="route">A string containing the name of the route to listen to.</param>
         /// <param name="handler">An action that is executed when the remote peer call the route.</param>
         /// <returns></returns>
-        public void AddRoute(string route, Action<Packet<IScenePeer>> handler, Dictionary<string, string> metadata = null)
+        public void AddRoute(string route, Action<Packet<IScenePeer>> handler, MessageOriginFilter filter = MessageOriginFilter.Host, Dictionary<string, string> metadata = null)
         {
 
             Action<Exception> onError = (exception) => 
@@ -237,11 +231,11 @@ namespace Stormancer
 				_logger.Log(LogLevel.Error, "Scene", "Error reading message on route '" + route + "'", exception.Message);
 		    };
 
-            OnMessage(route, metadata).Subscribe(handler, onError);
+            OnMessage(route, filter, metadata).Subscribe(handler, onError);
 
         }
 
-        public IObservable<Packet<IScenePeer>> OnMessage(string route, Dictionary<string, string> metadata = default(Dictionary<string, string>))
+        public IObservable<Packet<IScenePeer>> OnMessage(string route, MessageOriginFilter filter = MessageOriginFilter.Host, Dictionary<string, string> metadata = default(Dictionary<string, string>))
         {
 
             if(_client == null)
@@ -271,7 +265,7 @@ namespace Stormancer
             if (!_localRoutesMap.TryGetValue(route, out routeObj))
             {
                 DependencyResolver.Resolve<ILogger>().Trace("Created route with id : '{0}'", route);
-                routeObj = new Route(route, 0,  metadata);
+                routeObj = new Route(route, 0, filter, metadata);
                 _localRoutesMap.Add(route, routeObj);
                 foreach (var plugin in _pluginCtxs)
                 {
@@ -321,66 +315,99 @@ namespace Stormancer
         /// <param name="route">A string containing the route on which the message should be sent.</param>
         /// <param name="writer">An action called.</param>
         /// <returns>A task completing when the transport takes</returns>
-        public void SendPacket(PeerFilter filter, string route, Action<Stream> writer, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE_ORDERED, string channelIdentifier = "")
+        public void Send(PeerFilter filter, string route, Action<Stream> writer, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE_ORDERED, string channelIdentifier = "")
         {
-            if(_client == null)
+            if (_client == null)
             {
                 _logger.Error("SendPacket failed: Client deleted");
                 throw new InvalidOperationException("Client deleted");
-            }
-            if(_peer == null)
-            {
-                _logger.Error("SendPacket failed: Peer deleted");
-                throw new InvalidOperationException("Peer deleted");
-            }
-            if (route.Length == 0)
-            {
-                _logger.Error("SendPacket failed: Tried to send a message on an invalid route");
-                throw new ArgumentNullException("no route selected");
-            }
-            if (writer == null)
-            {
-                _logger.Error("SendPacket failed: Tried to send message with a null writer");
-                throw new ArgumentNullException("no writer given");
             }
             if (_connectionState.State != ConnectionState.Connected)
             {
                 _logger.Error("SendPacket failed: Tried to send message without being connected");
                 throw new InvalidOperationException("The scene must be connected to perform this operation.");
             }
-            Route routeObj;
-            if (!_remoteRoutesMap.TryGetValue(route, out routeObj))
+            if (route.Length == 0)
             {
-                DependencyResolver.Resolve<ILogger>().Error("SendPacket failed: The route '{0}' doesn't exist on the scene.", route);
-                throw new ArgumentException("The route " + route + " doesn't exist on the scene.");
+                _logger.Error("SendPacket failed: Tried to send a message on an invalid route");
+                throw new ArgumentNullException("no route selected");
             }
-
-            int channelUid = 1;
-            if(channelIdentifier.Length == 0)
+            if (filter.Type == PeerFilterType.MatchSceneHost)
             {
-                channelUid = _peer.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid($"Scene_{Id}_{route}");
+                Send(_host, route, writer, priority, reliability, channelIdentifier);
             }
             else
             {
-                channelUid = _peer.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid(channelIdentifier);
+                if (filter.Type == PeerFilterType.MatchAllP2P)
+                {
+                    foreach (var scenePeer in ConnectedPeers)
+                    {
+                        Send(scenePeer.Value, route, writer, priority, reliability, channelIdentifier);
+                    }
+                }
+                else if (filter.Type == PeerFilterType.MatchPeers)
+                {
+                    if (filter.Ids.Length == 0)
+                    {
+                        throw new InvalidOperationException("Cannot Send to peers if there is no peer ids in the PeerFilter");
+                    }
+                    foreach (ulong id in filter.Ids)
+                    {
+                        if (ConnectedPeers.TryGetValue(id, out var peer))
+                        {
+                            Send(peer, route, writer, priority, reliability, channelIdentifier);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException($"The peer with Id {id} cannot be found in the ConnectedPeers map");
+                        }
+                    }
+
+                }
             }
-            Action<Stream> writer2 = (stream) =>
+        }
+
+        private void Send(IScenePeer scenePeer, string routeName, Action<Stream> writer, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE_ORDERED, string channelIdentifier = "")
+        {
+            var remoteRoutes = scenePeer.Routes;
+            if(!remoteRoutes.TryGetValue(routeName, out var route))
+            {
+                throw new InvalidOperationException($"The scene peer does not contains a route named {routeName}");
+            }
+
+            var connection = scenePeer.Connection;
+            var channelUidStore = connection.DependencyResolver.Resolve<ChannelUidStore>();
+            int channelUid = 1;
+            if(string.IsNullOrEmpty(channelIdentifier))
+            {
+                channelUid = channelUidStore.GetChannelUid($"Scene_{Id}_{routeName}");
+            }
+            else
+            {
+                channelUid = channelUidStore.GetChannelUid(channelIdentifier);
+            }
+
+            var sceneHandle = scenePeer.Handle;
+            var routeHandle = route.Handle;
+
+            Action<Stream> writer2 = stream =>
             {
                 using (var binaryWriter = new BinaryWriter(stream, Encoding.UTF8, true))
                 {
-                    binaryWriter.Write(_handle);
-                    binaryWriter.Write(routeObj.Handle);
-                    writer(stream);
+                    binaryWriter.Write(sceneHandle);
+                    binaryWriter.Write(routeHandle);
+                    writer?.Invoke(stream);
                 }
+                
             };
-            TransformMetadata metadata = new TransformMetadata(this);
+            var transformMetadata = new TransformMetadata(this);
+            connection.SendSystem(writer2, channelUid, priority, reliability, transformMetadata);
 
-            _peer.SendSystem(writer2, channelUid, priority, reliability, metadata);
         }
 
-        public void SendPacket(string routeName, Action<Stream> writer, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE_ORDERED, string channelIdentifier = "")
+        public void Send(string routeName, Action<Stream> writer, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE_ORDERED, string channelIdentifier = "")
         {
-            SendPacket(PeerFilter.MatchSceneHost(), routeName, writer, priority, reliability, channelIdentifier); 
+            Send(PeerFilter.MatchSceneHost(), routeName, writer, priority, reliability, channelIdentifier); 
         }
                
         public Task Connect()
@@ -490,8 +517,7 @@ namespace Stormancer
 
         internal void CompleteConnectionInitialization(ConnectionResult cr)
         {
-            this._handle = cr.SceneHandle;
-
+            _host = new ScenePeer(_peer, cr.SceneHandle, _remoteRoutesMap, this);
             foreach (var route in _localRoutesMap)
             {
                 route.Value.Handle = cr.RouteMappings[route.Key];
@@ -515,7 +541,7 @@ namespace Stormancer
 
             if(_handlers.ContainsKey(routeId))
             {
-                Route route = new Route();
+                var route = new Route();
                 foreach(var localRoute in _localRoutesMap)
                 {
                     if(localRoute.Value.Handle == routeId)
@@ -524,6 +550,16 @@ namespace Stormancer
                         break;
                     }
                 }
+
+                if(packet.Connection.Id == _host.Id && (route.Filter & MessageOriginFilter.Host) == 0)
+                {
+                    return; // The route doesn't accept messages from the scene host.
+                }
+                if(packet.Connection.Id != _host.Id && (route.Filter & MessageOriginFilter.Host) > 0)
+                {
+                    return; // The route doesn't accept messages from the scene host.
+                }
+
                 packet.Metadata["routeId"] = route.Name;
                 foreach (var ctx in _pluginCtxs)
                 {
@@ -577,9 +613,77 @@ namespace Stormancer
         {
             var p2pService = DependencyResolver.Resolve<P2PService>();
             var connection = await p2pService.OpenP2PConnection(_peer, p2pToken, ct);
-            return new P2PScenePeer(this, connection, p2pService, new P2PConnectToSceneMessage());
+            var handles = connection.DependencyResolver.Resolve<List<Scene>>();
+            byte handle = 0;
+            bool success = false;
+
+            for(byte i = 0; i < 150; i++)
+            {
+                if(handles.ElementAtOrDefault(i) == null)
+                {
+
+                    handle = (byte)(i + (byte)MessageIDTypes.ID_SCENES);
+                    handles.Insert(i, this);
+                    success = true;
+                    break;
+                }
+            }
+            if(!success)
+            {
+                throw new InvalidOperationException("Failed to generate handle for scene");
+            }
+
+            var connectToSceneMessage = new P2PConnectToSceneMessage();
+            connectToSceneMessage.SceneId = Address.toUri();
+            connectToSceneMessage.SceneHandle = handle;
+            foreach (var r in LocalRoutes)
+            {
+                if (((byte)r.Filter & (byte)MessageOriginFilter.Peer) >  0)
+                {
+                    var routeDto = new RouteDto();
+                    routeDto.Handle = r.Handle;
+                    routeDto.Name = r.Name;
+                    routeDto.Metadata = r.Metadata;
+                    connectToSceneMessage.Routes.Add(routeDto);
+                }
+            }
+            connectToSceneMessage.ConnectionMetadata = connection.Metadata;
+            connectToSceneMessage.SceneMetadata = GetSceneMetadata();
+
+            var message = await SendSystemRequest<P2PConnectToSceneMessage, P2PConnectToSceneMessage>(connection, (byte)SystemRequestIDTypes.ID_CONNECT_TO_SCENE, connectToSceneMessage, ct);
+            _logger.Log(LogLevel.Debug, "Debug", "Received response from ID_CONNECT_TO_SCENE, adding the peerConnected");
+            var peer = AddConnectedPeer(connection, p2pService, message);
+            var requestProcessor = DependencyResolver.Resolve<RequestProcessor>();
+            var serializer = DependencyResolver.Resolve<ISerializer>();
+            await requestProcessor.SendSystemRequest(connection, (byte)SystemRequestIDTypes.ID_CONNECTED_TO_SCENE, stream => { serializer.Serialize(message.SceneId, stream); });
+            SetPeerConnected(connection);
+            return peer;
         }
 
+        public void SetPeerConnected(IConnection connection)
+        {
+            if (ConnectedPeers.TryGetValue(connection.Id, out var peer))
+            {
+                OnPeerConnected?.Invoke(peer);
+            }
+        }
+
+        public IP2PScenePeer AddConnectedPeer(IConnection connection, P2PService service, P2PConnectToSceneMessage message)
+        {
+            if (!ConnectedPeers.TryGetValue(connection.Id, out var peer))
+            {
+                peer = new P2PScenePeer(this, connection, service, message);
+                ConnectedPeers.Add(connection.Id, peer);
+            }
+            return peer;
+        }
+
+
+        private Task<T1> SendSystemRequest<T1, T2>(IConnection connection, byte id, T2 parameter, CancellationToken token = default(CancellationToken))
+        {
+            var requestProcessor = DependencyResolver.Resolve<RequestProcessor>();
+            return requestProcessor.SendSystemRequest<T1, T2>(connection, id, parameter, token);
+        }
         public Task<IP2PScenePeer> OpenP2PConnection(string p2pToken)
         {
             return OpenP2PConnection(p2pToken, CancellationToken.None);

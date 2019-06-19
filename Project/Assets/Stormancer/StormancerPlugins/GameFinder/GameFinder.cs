@@ -96,7 +96,7 @@ namespace Stormancer.Plugins
 		/// * A game is found
 		/// * An error occurs on the server-side GameFinder
 		/// * The request is canceled with a call to <c>cancel()</c>.</returns>
-        public async Task FindGame(string gameFinder, string provider, string json)
+        public async Task FindGame<TData>(string gameFinder, string provider, TData data)
         {
             if (!_pendingFindGameRequest.TryAdd(gameFinder, new CancellationTokenSource()))
             {
@@ -109,7 +109,7 @@ namespace Stormancer.Plugins
                 throw new TaskCanceledException();
             }
             cancellationToken.Register(() => container.Service.Cancel());
-            await container.Service.FindGame(provider, json);
+            await container.Service.FindGame(provider, data);
             _pendingFindGameRequest.TryRemove(gameFinder, out _);
         }
 
@@ -137,39 +137,6 @@ namespace Stormancer.Plugins
                 result.Add(gamefinder.Key, status);
             }
             return result;
-        }
-
-        /// <summary>
-		/// Be notified when a FindGame query fails.
-		/// </summary>
-		/// <remarks>
-		/// A FindGame failure could be caused by a variety of reasons, including but not limited to custom GameFinder logic.
-		/// The <c>FindGameFailedEvent</c> argument passed to the <c>callback</c> may contain the reason for the failure.
-		/// </remarks>
-		/// <param name="callback">Callable object to be called when a FindGame failure occurs.</param>
-        public void SubscribeFindGameFailed(Action<FindGameFailedEvent> callback)
-        {
-            OnFindGameFailed += callback;
-        }
-
-        /// <summary>
-        /// Subscribe to <c>findGame</c> status notifications.
-        /// </summary>
-        /// <param name="callback">Callable object to be called when a <c>findGame</c> request status update occurs.</param>
-        public void SubscribeGameFinderStateChanged(Action<GameFinderStatusChangedEvent> callback)
-        {
-            OnGameFinderStateChanged += callback;
-        }
-
-        /// <summary>
-		/// Subscribe to <c>GameFoundEvent</c> notifications.
-		/// </summary>
-		/// <remarks>A <c>GameFoundEvent</c> is triggered when a <c>findGame</c> request succeeds.
-		/// It carries the information you need to join the game that the GameFinder has found for you.</remarks>
-		/// <param name="callback">Callable object to be called when a <c>GameFoundEvent</c> occurs.</param>
-        public void SubscribeGameFound(Action<GameFoundEvent> callback)
-        {
-            OnGameFound += callback;
         }
 
         private async Task<GameFinderContainer> ConnectToGameFinderImpl(string gameFinderName)

@@ -31,7 +31,7 @@ namespace Stormancer.Core
 		/// <param name="handler">Function which handle the receiving messages from the server on the route.</param>
         /// <param name="metadata">Metadatas about the Route.</param>
 		/// Add a route for each different message type.
-        void AddRoute(string routeName, Action<Packet<IScenePeer>> handler, Dictionary<string, string> metadata);
+        void AddRoute(string routeName, Action<Packet<IScenePeer>> handler, MessageOriginFilter filter, Dictionary<string, string> metadata);
 
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Stormancer.Core
         /// <param name="writer">Function where we write the data in the byte stream.</param>
         /// <param name="priority">Message priority on the network.</param>
         /// <param name="reliability">Message reliability behavior.</param>
-        void SendPacket(PeerFilter peerFilter, string routeName, Action<Stream> writer, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE_ORDERED, string channelIdentifier = "");
+        void Send(PeerFilter peerFilter, string routeName, Action<Stream> writer, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE_ORDERED, string channelIdentifier = "");
 
         /// <summary>
         /// Send a packet to a route.
@@ -51,7 +51,7 @@ namespace Stormancer.Core
 		/// <param name="writer">Function where we write the data in the byte stream.</param>
 		/// <param name="priority">Message priority on the network.</param>
 		/// <param name="reliability">Message reliability behavior.</param>
-        void SendPacket(string routeName, Action<Stream> writer, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE_ORDERED, string channelIdentifier = "");
+        void Send(string routeName, Action<Stream> writer, PacketPriority priority = PacketPriority.MEDIUM_PRIORITY, PacketReliability reliability = PacketReliability.RELIABLE_ORDERED, string channelIdentifier = "");
         
         /// <summary>
         /// Returns the connection state to the the scene.
@@ -64,11 +64,6 @@ namespace Stormancer.Core
         /// Returns the scene id.
         /// /// </summary>
         string Id { get; }
-            
-        /// <summary>
-        /// Returns the scene handle.
-        /// </summary>
-        byte Handle { get; }
 
         /// <summary>
         /// Returns a host metadata value.
@@ -95,7 +90,7 @@ namespace Stormancer.Core
         /// </summary>
         /// <param "routeName">A string containing the name of the route to listen to.</param>
         /// <returns>An IObservable<Packet> instance that fires each time a message is received on the route.</returns>
-        IObservable<Packet<IScenePeer>> OnMessage(string routeName, Dictionary<string, string> metadata);
+        IObservable<Packet<IScenePeer>> OnMessage(string routeName, MessageOriginFilter filter, Dictionary<string, string> metadata);
 
         /// <summary>
         /// Get an array containing the scene host connections.

@@ -37,7 +37,9 @@ namespace GeneratedSerializers {
         
         private System.Func<MsgPack.Unpacker, System.Type, string, byte> MsgPack_Serialization_UnpackHelpers_UnpackByteValueDelegate;
         
-        private System.Action<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.Dictionary<string, string>> this_SetUnpackedValueOfMetadataDelegate;
+        private System.Action<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.Dictionary<string, string>> this_SetUnpackedValueOfSceneMetadataDelegate;
+        
+        private System.Action<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.Dictionary<string, string>> this_SetUnpackedValueOfConnectionMetadataDelegate;
         
         private System.Action<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.List<Stormancer.Dto.RouteDto>> this_SetUnpackedValueOfRoutesDelegate;
         
@@ -62,49 +64,56 @@ namespace GeneratedSerializers {
             schema3 = null;
             this._serializer3 = context.GetSerializer<System.Collections.Generic.List<Stormancer.Dto.RouteDto>>(schema3);
             System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>[] packOperationList = default(System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>[]);
-            packOperationList = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>[4];
+            packOperationList = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>[5];
             packOperationList[0] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfSceneId);
             packOperationList[1] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfSceneHandle);
-            packOperationList[2] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfMetadata);
-            packOperationList[3] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfRoutes);
+            packOperationList[2] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfSceneMetadata);
+            packOperationList[3] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfConnectionMetadata);
+            packOperationList[4] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfRoutes);
             this._packOperationList = packOperationList;
             System.Collections.Generic.Dictionary<string, System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>> packOperationTable = default(System.Collections.Generic.Dictionary<string, System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>>);
-            packOperationTable = new System.Collections.Generic.Dictionary<string, System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>>(4);
+            packOperationTable = new System.Collections.Generic.Dictionary<string, System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>>(5);
             packOperationTable["SceneId"] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfSceneId);
             packOperationTable["SceneHandle"] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfSceneHandle);
-            packOperationTable["Metadata"] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfMetadata);
+            packOperationTable["SceneMetadata"] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfSceneMetadata);
+            packOperationTable["ConnectionMetadata"] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfConnectionMetadata);
             packOperationTable["Routes"] = new System.Action<MsgPack.Packer, Stormancer.P2PConnectToSceneMessage>(this.PackValueOfRoutes);
             this._packOperationTable = packOperationTable;
             System.Collections.Generic.Dictionary<string, System.Func<Stormancer.P2PConnectToSceneMessage, bool>> nullCheckerTable = default(System.Collections.Generic.Dictionary<string, System.Func<Stormancer.P2PConnectToSceneMessage, bool>>);
-            nullCheckerTable = new System.Collections.Generic.Dictionary<string, System.Func<Stormancer.P2PConnectToSceneMessage, bool>>(3);
+            nullCheckerTable = new System.Collections.Generic.Dictionary<string, System.Func<Stormancer.P2PConnectToSceneMessage, bool>>(4);
             nullCheckerTable["SceneId"] = new System.Func<Stormancer.P2PConnectToSceneMessage, bool>(this.IsSceneIdNull);
-            nullCheckerTable["Metadata"] = new System.Func<Stormancer.P2PConnectToSceneMessage, bool>(this.IsMetadataNull);
+            nullCheckerTable["SceneMetadata"] = new System.Func<Stormancer.P2PConnectToSceneMessage, bool>(this.IsSceneMetadataNull);
+            nullCheckerTable["ConnectionMetadata"] = new System.Func<Stormancer.P2PConnectToSceneMessage, bool>(this.IsConnectionMetadataNull);
             nullCheckerTable["Routes"] = new System.Func<Stormancer.P2PConnectToSceneMessage, bool>(this.IsRoutesNull);
             this._nullCheckersTable = nullCheckerTable;
             System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>[] unpackOperationList = default(System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>[]);
-            unpackOperationList = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>[4];
+            unpackOperationList = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>[5];
             unpackOperationList[0] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfSceneId);
             unpackOperationList[1] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfSceneHandle);
-            unpackOperationList[2] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfMetadata);
-            unpackOperationList[3] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfRoutes);
+            unpackOperationList[2] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfSceneMetadata);
+            unpackOperationList[3] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfConnectionMetadata);
+            unpackOperationList[4] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfRoutes);
             this._unpackOperationList = unpackOperationList;
             System.Collections.Generic.Dictionary<string, System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>> unpackOperationTable = default(System.Collections.Generic.Dictionary<string, System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>>);
-            unpackOperationTable = new System.Collections.Generic.Dictionary<string, System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>>(4);
+            unpackOperationTable = new System.Collections.Generic.Dictionary<string, System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>>(5);
             unpackOperationTable["SceneId"] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfSceneId);
             unpackOperationTable["SceneHandle"] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfSceneHandle);
-            unpackOperationTable["Metadata"] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfMetadata);
+            unpackOperationTable["SceneMetadata"] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfSceneMetadata);
+            unpackOperationTable["ConnectionMetadata"] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfConnectionMetadata);
             unpackOperationTable["Routes"] = new System.Action<MsgPack.Unpacker, Stormancer.P2PConnectToSceneMessage, int, int>(this.UnpackValueOfRoutes);
             this._unpackOperationTable = unpackOperationTable;
             this._memberNames = new string[] {
                     "SceneId",
                     "SceneHandle",
-                    "Metadata",
+                    "SceneMetadata",
+                    "ConnectionMetadata",
                     "Routes"};
             this.this_SetUnpackedValueOfSceneIdDelegate = new System.Action<Stormancer.P2PConnectToSceneMessage, string>(this.SetUnpackedValueOfSceneId);
             this.MsgPack_Serialization_UnpackHelpers_UnpackStringValueDelegate = new System.Func<MsgPack.Unpacker, System.Type, string, string>(MsgPack.Serialization.UnpackHelpers.UnpackStringValue);
             this.this_SetUnpackedValueOfSceneHandleDelegate = new System.Action<Stormancer.P2PConnectToSceneMessage, byte>(this.SetUnpackedValueOfSceneHandle);
             this.MsgPack_Serialization_UnpackHelpers_UnpackByteValueDelegate = new System.Func<MsgPack.Unpacker, System.Type, string, byte>(MsgPack.Serialization.UnpackHelpers.UnpackByteValue);
-            this.this_SetUnpackedValueOfMetadataDelegate = new System.Action<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.Dictionary<string, string>>(this.SetUnpackedValueOfMetadata);
+            this.this_SetUnpackedValueOfSceneMetadataDelegate = new System.Action<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.Dictionary<string, string>>(this.SetUnpackedValueOfSceneMetadata);
+            this.this_SetUnpackedValueOfConnectionMetadataDelegate = new System.Action<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.Dictionary<string, string>>(this.SetUnpackedValueOfConnectionMetadata);
             this.this_SetUnpackedValueOfRoutesDelegate = new System.Action<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.List<Stormancer.Dto.RouteDto>>(this.SetUnpackedValueOfRoutes);
         }
         
@@ -120,12 +129,20 @@ namespace GeneratedSerializers {
             this._serializer1.PackTo(packer, objectTree.SceneHandle);
         }
         
-        private void PackValueOfMetadata(MsgPack.Packer packer, Stormancer.P2PConnectToSceneMessage objectTree) {
-            this._serializer2.PackTo(packer, objectTree.Metadata);
+        private void PackValueOfSceneMetadata(MsgPack.Packer packer, Stormancer.P2PConnectToSceneMessage objectTree) {
+            this._serializer2.PackTo(packer, objectTree.SceneMetadata);
         }
         
-        private bool IsMetadataNull(Stormancer.P2PConnectToSceneMessage objectTree) {
-            return (objectTree.Metadata == null);
+        private bool IsSceneMetadataNull(Stormancer.P2PConnectToSceneMessage objectTree) {
+            return (objectTree.SceneMetadata == null);
+        }
+        
+        private void PackValueOfConnectionMetadata(MsgPack.Packer packer, Stormancer.P2PConnectToSceneMessage objectTree) {
+            this._serializer2.PackTo(packer, objectTree.ConnectionMetadata);
+        }
+        
+        private bool IsConnectionMetadataNull(Stormancer.P2PConnectToSceneMessage objectTree) {
+            return (objectTree.ConnectionMetadata == null);
         }
         
         private void PackValueOfRoutes(MsgPack.Packer packer, Stormancer.P2PConnectToSceneMessage objectTree) {
@@ -192,11 +209,11 @@ namespace GeneratedSerializers {
             MsgPack.Serialization.UnpackHelpers.UnpackValueTypeValue(ref unpackHelperParameters0);
         }
         
-        private void SetUnpackedValueOfMetadata(Stormancer.P2PConnectToSceneMessage unpackingContext, System.Collections.Generic.Dictionary<string, string> unpackedValue) {
-            unpackingContext.Metadata = unpackedValue;
+        private void SetUnpackedValueOfSceneMetadata(Stormancer.P2PConnectToSceneMessage unpackingContext, System.Collections.Generic.Dictionary<string, string> unpackedValue) {
+            unpackingContext.SceneMetadata = unpackedValue;
         }
         
-        private void UnpackValueOfMetadata(MsgPack.Unpacker unpacker, Stormancer.P2PConnectToSceneMessage unpackingContext, int indexOfItem, int itemsCount) {
+        private void UnpackValueOfSceneMetadata(MsgPack.Unpacker unpacker, Stormancer.P2PConnectToSceneMessage unpackingContext, int indexOfItem, int itemsCount) {
             MsgPack.Serialization.UnpackReferenceTypeValueParameters<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.Dictionary<string, string>> unpackHelperParameters1 = default(MsgPack.Serialization.UnpackReferenceTypeValueParameters<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.Dictionary<string, string>>);
             unpackHelperParameters1.Unpacker = unpacker;
             unpackHelperParameters1.UnpackingContext = unpackingContext;
@@ -204,11 +221,30 @@ namespace GeneratedSerializers {
             unpackHelperParameters1.ItemsCount = itemsCount;
             unpackHelperParameters1.Unpacked = indexOfItem;
             unpackHelperParameters1.TargetObjectType = typeof(System.Collections.Generic.Dictionary<string, string>);
-            unpackHelperParameters1.MemberName = "Metadata";
+            unpackHelperParameters1.MemberName = "SceneMetadata";
             unpackHelperParameters1.NilImplication = MsgPack.Serialization.NilImplication.MemberDefault;
             unpackHelperParameters1.DirectRead = null;
-            unpackHelperParameters1.Setter = this.this_SetUnpackedValueOfMetadataDelegate;
+            unpackHelperParameters1.Setter = this.this_SetUnpackedValueOfSceneMetadataDelegate;
             MsgPack.Serialization.UnpackHelpers.UnpackReferenceTypeValue(ref unpackHelperParameters1);
+        }
+        
+        private void SetUnpackedValueOfConnectionMetadata(Stormancer.P2PConnectToSceneMessage unpackingContext, System.Collections.Generic.Dictionary<string, string> unpackedValue) {
+            unpackingContext.ConnectionMetadata = unpackedValue;
+        }
+        
+        private void UnpackValueOfConnectionMetadata(MsgPack.Unpacker unpacker, Stormancer.P2PConnectToSceneMessage unpackingContext, int indexOfItem, int itemsCount) {
+            MsgPack.Serialization.UnpackReferenceTypeValueParameters<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.Dictionary<string, string>> unpackHelperParameters2 = default(MsgPack.Serialization.UnpackReferenceTypeValueParameters<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.Dictionary<string, string>>);
+            unpackHelperParameters2.Unpacker = unpacker;
+            unpackHelperParameters2.UnpackingContext = unpackingContext;
+            unpackHelperParameters2.Serializer = this._serializer2;
+            unpackHelperParameters2.ItemsCount = itemsCount;
+            unpackHelperParameters2.Unpacked = indexOfItem;
+            unpackHelperParameters2.TargetObjectType = typeof(System.Collections.Generic.Dictionary<string, string>);
+            unpackHelperParameters2.MemberName = "ConnectionMetadata";
+            unpackHelperParameters2.NilImplication = MsgPack.Serialization.NilImplication.MemberDefault;
+            unpackHelperParameters2.DirectRead = null;
+            unpackHelperParameters2.Setter = this.this_SetUnpackedValueOfConnectionMetadataDelegate;
+            MsgPack.Serialization.UnpackHelpers.UnpackReferenceTypeValue(ref unpackHelperParameters2);
         }
         
         private void SetUnpackedValueOfRoutes(Stormancer.P2PConnectToSceneMessage unpackingContext, System.Collections.Generic.List<Stormancer.Dto.RouteDto> unpackedValue) {
@@ -216,18 +252,18 @@ namespace GeneratedSerializers {
         }
         
         private void UnpackValueOfRoutes(MsgPack.Unpacker unpacker, Stormancer.P2PConnectToSceneMessage unpackingContext, int indexOfItem, int itemsCount) {
-            MsgPack.Serialization.UnpackReferenceTypeValueParameters<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.List<Stormancer.Dto.RouteDto>> unpackHelperParameters2 = default(MsgPack.Serialization.UnpackReferenceTypeValueParameters<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.List<Stormancer.Dto.RouteDto>>);
-            unpackHelperParameters2.Unpacker = unpacker;
-            unpackHelperParameters2.UnpackingContext = unpackingContext;
-            unpackHelperParameters2.Serializer = this._serializer3;
-            unpackHelperParameters2.ItemsCount = itemsCount;
-            unpackHelperParameters2.Unpacked = indexOfItem;
-            unpackHelperParameters2.TargetObjectType = typeof(System.Collections.Generic.List<Stormancer.Dto.RouteDto>);
-            unpackHelperParameters2.MemberName = "Routes";
-            unpackHelperParameters2.NilImplication = MsgPack.Serialization.NilImplication.MemberDefault;
-            unpackHelperParameters2.DirectRead = null;
-            unpackHelperParameters2.Setter = this.this_SetUnpackedValueOfRoutesDelegate;
-            MsgPack.Serialization.UnpackHelpers.UnpackReferenceTypeValue(ref unpackHelperParameters2);
+            MsgPack.Serialization.UnpackReferenceTypeValueParameters<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.List<Stormancer.Dto.RouteDto>> unpackHelperParameters3 = default(MsgPack.Serialization.UnpackReferenceTypeValueParameters<Stormancer.P2PConnectToSceneMessage, System.Collections.Generic.List<Stormancer.Dto.RouteDto>>);
+            unpackHelperParameters3.Unpacker = unpacker;
+            unpackHelperParameters3.UnpackingContext = unpackingContext;
+            unpackHelperParameters3.Serializer = this._serializer3;
+            unpackHelperParameters3.ItemsCount = itemsCount;
+            unpackHelperParameters3.Unpacked = indexOfItem;
+            unpackHelperParameters3.TargetObjectType = typeof(System.Collections.Generic.List<Stormancer.Dto.RouteDto>);
+            unpackHelperParameters3.MemberName = "Routes";
+            unpackHelperParameters3.NilImplication = MsgPack.Serialization.NilImplication.MemberDefault;
+            unpackHelperParameters3.DirectRead = null;
+            unpackHelperParameters3.Setter = this.this_SetUnpackedValueOfRoutesDelegate;
+            MsgPack.Serialization.UnpackHelpers.UnpackReferenceTypeValue(ref unpackHelperParameters3);
         }
         
         protected internal override Stormancer.P2PConnectToSceneMessage UnpackFromCore(MsgPack.Unpacker unpacker) {

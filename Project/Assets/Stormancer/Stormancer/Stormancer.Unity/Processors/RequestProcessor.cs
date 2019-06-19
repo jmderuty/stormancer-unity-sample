@@ -297,6 +297,13 @@ namespace Stormancer.Networking.Processors
         private async Task<TResult> SendSystemRequestInternal<TResult>(IConnection peer, byte msgId, Action<Stream> writer, PacketPriority priority, CancellationToken ct)
         {
             var packet = await SendSystemRequest(peer, msgId, writer, priority, ct);
+            if(packet == null)
+            {
+
+                var msg = "Tried to return " + typeof(TResult).Name + " from a system request of type " + msgId + " that returned void.";
+                _logger.Log(LogLevel.Error, "RequestProcessor", msg);
+                throw new InvalidOperationException(msg);
+            }
             return _serializer.Deserialize<TResult>(packet.Stream);
         }
 

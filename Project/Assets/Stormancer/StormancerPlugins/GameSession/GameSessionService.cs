@@ -81,7 +81,7 @@ namespace Stormancer.Plugins
             });
         }
 
-        public async Task InitializeTunnel(string p2pToken, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task InitializeTunnel(string p2pToken, bool useTunnel, CancellationToken cancellationToken = default(CancellationToken))
         {
             cancellationToken = LinkTokenToDisconnection(cancellationToken);
             if (_scene == null)
@@ -99,10 +99,13 @@ namespace Stormancer.Plugins
             _receivedP2PToken = true;
             if(p2pToken == null)
             {
-                _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "received empty p2p token : I'm the host.");
+                _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "received empty p2p token : I'm the host."); 
                 OnRoleReceived?.Invoke("HOST");
-                _tunnel = _scene.RegisterP2PServer(GAMESESSION_P2P_SERVER_ID);
-                _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "Tunnel established on host");
+                if(useTunnel)
+                {
+                    _tunnel = _scene.RegisterP2PServer(GAMESESSION_P2P_SERVER_ID);
+                    _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "Tunnel established on host");
+                }
             }
             else
             {
@@ -112,15 +115,12 @@ namespace Stormancer.Plugins
                     var p2pPeer = await _scene.OpenP2PConnection(p2pToken, cancellationToken);
                     OnRoleReceived?.Invoke("CLIENT");
                     OnConnectionOpened?.Invoke(p2pPeer);
-                    if (ShouldEstablishTunnel)
+                    if (useTunnel)
                     {
                         _tunnel = await p2pPeer.OpenP2PTunnel(GAMESESSION_P2P_SERVER_ID, cancellationToken);
+                        _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "Tunnel established on client");
 
                         OnTunnelOpened?.Invoke(_tunnel);
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("Service destroyed");
                     }
                 }
                 catch (Exception ex) when (!(ex is OperationCanceledException))

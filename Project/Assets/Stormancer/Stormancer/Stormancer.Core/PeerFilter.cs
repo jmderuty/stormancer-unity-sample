@@ -5,28 +5,37 @@ using System.Text;
 using UnityEngine;
 namespace Stormancer
 {
-    enum PeerFilterType
+    public enum PeerFilterType
     {
-        MatchAllFilter,
-		MatchSceneHost,
-		MatchPeerFilter,
-		MatchArrayFilter
+        MatchSceneHost = 0,
+        MatchPeers = 1,
+        MatchAllP2P = 2
     };
 
     public class PeerFilter
     {
-        PeerFilter(PeerFilterType type)
+
+        public PeerFilterType Type { get; } = PeerFilterType.MatchSceneHost;
+        public ulong[] Ids { get; }
+
+
+        public PeerFilter()
+        {
+            Type = PeerFilterType.MatchSceneHost;
+        }
+
+        public PeerFilter(PeerFilterType type)
         {
             Type = type;
         }
 
-        PeerFilter(PeerFilterType type, long id)
+        public PeerFilter(PeerFilterType type, ulong id)
         {
             Type = type;
-            Ids = new long[] { id };
+            Ids = new ulong[] { id };
         }
 
-        PeerFilter(PeerFilterType type, long[] ids)
+        public PeerFilter(PeerFilterType type, ulong[] ids)
         {
             Type = type;
             Ids = ids;
@@ -40,54 +49,46 @@ namespace Stormancer
             {
                 switch (peerType)
                 {
-                    case 0:
-                        {
-                            long id = reader.ReadInt64();
-                            return new PeerFilter(PeerFilterType.MatchPeerFilter, id);
-                        }
                     case 1:
+                    {
+                        ushort nbPeers = reader.ReadUInt16();
+                        ulong[] peers = new ulong[nbPeers];
+                        for (int i = 0; i < nbPeers; i++)
                         {
-                            ushort nbPeers = reader.ReadUInt16();
-                            long[] peers = new long[nbPeers];
-                            for (int i = 0; i < nbPeers; i++)
-                            {
-                                peers[i] = reader.ReadInt64();
-                            }
-                            return new PeerFilter(PeerFilterType.MatchArrayFilter, peers);
+                            peers[i] = reader.ReadUInt64();
                         }
+                        return new PeerFilter(PeerFilterType.MatchPeers, peers);
+                    }
                     case 2:
-                        {
-                            return new PeerFilter(PeerFilterType.MatchAllFilter);
-                        }
+                    {
+                        return new PeerFilter(PeerFilterType.MatchAllP2P);
+                    }
                     default:
-                        {
-                            return new PeerFilter(PeerFilterType.MatchSceneHost);
-                        }
+                    {
+                        return new PeerFilter(PeerFilterType.MatchSceneHost);
+                    }
                 }
             }
         }
 
-        PeerFilterType Type = PeerFilterType.MatchSceneHost;
-        long[] Ids;
-
-        public static PeerFilter MatchAllFilter()
-        {
-            return new PeerFilter(PeerFilterType.MatchAllFilter);
-        }
-
         public static PeerFilter MatchSceneHost()
         {
-            return new PeerFilter(PeerFilterType.MatchSceneHost);
+            return new PeerFilter();
         }
 
-        public static PeerFilter MatchPeerFilter(long id)
+        public static PeerFilter MatchPeers(ulong id)
         {
-            return new PeerFilter(PeerFilterType.MatchPeerFilter, id);
+            return new PeerFilter(PeerFilterType.MatchPeers, id);
         }
 
-        public static PeerFilter MatchArrayFilter(long[] ids)
+        public static PeerFilter MatchPeers(ulong[] ids)
         {
-            return new PeerFilter(PeerFilterType.MatchArrayFilter, ids);
+            return new PeerFilter(PeerFilterType.MatchPeers, ids);
+        }
+
+        public static PeerFilter MatchAllP2P()
+        {
+            return new PeerFilter(PeerFilterType.MatchAllP2P);
         }
     }
 }

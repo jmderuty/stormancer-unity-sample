@@ -132,7 +132,7 @@ namespace Stormancer.Plugins
                         if (_pendingRequests.TryAdd(id, rq))
                         {
 
-                            _scene.SendPacket(route, s =>
+                            _scene.Send(route, s =>
                             {
                                 s.Write(BitConverter.GetBytes(id), 0, 2);
                                 writer(s);
@@ -144,7 +144,7 @@ namespace Stormancer.Plugins
                             Request _;
                             if (!rq.HasCompleted && _pendingRequests.TryRemove(id, out _) && _supportsCancellation)
                             {
-                                _scene.SendPacket(CancellationRouteName, s =>
+                                _scene.Send(CancellationRouteName, s =>
                                 {
                                     s.Write(BitConverter.GetBytes(id), 0, 2);
                                 });
@@ -173,7 +173,7 @@ namespace Stormancer.Plugins
             /// <remarks>
             /// The procedure is added to the scene to which this service is attached.
             /// </remarks>
-            public void AddProcedure(string route, Func<RequestContext<IScenePeer>, Task> handler, bool ordered)
+            public void AddProcedure(string route, Func<RequestContext<IScenePeer>, Task> handler, MessageOriginFilter filter, bool ordered)
             {
                 this._scene.AddRoute(route, p =>
                 {
@@ -220,7 +220,7 @@ namespace Stormancer.Plugins
                             }
                         });
                     }
-                }, new Dictionary<string, string> { { RpcClientPlugin.PluginName, RpcClientPlugin.Version } });
+                }, filter, new Dictionary<string, string> { { RpcClientPlugin.PluginName, RpcClientPlugin.Version } });
             }
 
             private ushort ReserveId()

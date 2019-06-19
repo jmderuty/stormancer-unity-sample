@@ -26,7 +26,8 @@ namespace Stormancer.Client45
         ID_JOIN_SESSION = 14,
         ID_CONNECT_TO_SCENE = 134,
         ID_DISCONNECT_FROM_SCENE = 135,
-        ID_GET_SCENE_INFOS = 136
+        ID_GET_SCENE_INFOS = 136,
+        ID_CONNECTED_TO_SCENE = 137
        
     }
 }

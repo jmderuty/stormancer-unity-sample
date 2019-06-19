@@ -26,10 +26,11 @@ namespace Stormancer.Core
             PacketReliability reliability);
 
         void Disconnect();
-
-        T GetComponent<T>();
-
+        
         ulong Id { get; }
 
+        Dictionary<string, Route> Routes { get; }
+        IConnection Connection { get; }
+        byte Handle { get; }
     }
 }

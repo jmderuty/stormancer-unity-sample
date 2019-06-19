@@ -9,34 +9,36 @@ namespace Stormancer
 {
     internal class ScenePeer : IScenePeer
     {
-        private readonly IConnection _connection;
-        private readonly byte _sceneHandle;
-        private readonly IDictionary<string, Route> _routeMapping;
         private readonly Scene _scene;
-        public ScenePeer(IConnection connection, byte sceneHandle, IDictionary<string, Route> routeMapping, Scene scene)
+        public ScenePeer(IConnection connection, byte sceneHandle, Dictionary<string, Route> routeMapping, Scene scene)
         {
-            _connection = connection;
-            _sceneHandle = sceneHandle;
-            _routeMapping = routeMapping;
+            Connection = connection;
+            Handle = sceneHandle;
+            Routes = routeMapping;
             _scene = scene;
         }
         public void Send(string route, Action<System.IO.Stream> writer, PacketPriority priority, PacketReliability reliability)
         {
-            if (_connection == null)
+            if (Connection == null)
             {
                 throw new InvalidOperationException("Connection deleted.");
             }
 
             Route r;
-            if (!_routeMapping.TryGetValue(route, out r))
+            if (!Routes.TryGetValue(route, out r))
             {
                 throw new ArgumentException(string.Format("The route '{0}' is not declared on the server.", route));
             }
             string channelName = $"ScenePeer_{Id}_{route}";
-            int channelUid = _connection.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid(channelName);
-            _connection.SendSystem(writer, 0, priority, reliability);
+            int channelUid = Connection.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid(channelName);
+            Connection.SendSystem(writer, 0, priority, reliability);
         }
 
+        public Dictionary<string, Route> Routes { get; }
+
+        public IConnection Connection { get; }
+
+        public byte Handle { get; }
 
         public void Disconnect()
         {
@@ -46,18 +48,9 @@ namespace Stormancer
 
         public ulong Id
         {
-            get { return _connection.Id; }
+            get { return Connection.Id; }
         }
 
         private Dictionary<Type, object> _components = new Dictionary<Type, object>();
-        public T GetComponent<T>()
-        {
-            object result;
-            if (!_components.TryGetValue(typeof(T), out result))
-            {
-                return _connection.DependencyResolver.Resolve<T>();
-            }
-            return default(T);
-        }
     }
 }

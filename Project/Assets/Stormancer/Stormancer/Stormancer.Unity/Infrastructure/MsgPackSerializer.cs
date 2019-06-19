@@ -104,6 +104,7 @@ namespace Stormancer.Client45.Infrastructure
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ComparisonOperatorSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_EndGameDtoSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_FieldFilterSerializer(ctx));
+			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameFinderParametersSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameFinderRequestSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameFinderResponseDTOSerializer(ctx));
 			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameResultSerializer(ctx));

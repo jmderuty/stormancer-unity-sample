@@ -327,6 +327,22 @@ namespace Stormancer
             }
         }
 
+        public async Task<Scene> GetConnectedScene(string sceneId, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            _logger.Log(LogLevel.Trace, "Client", $"Get connected scene {sceneId}");
+
+            if(string.IsNullOrEmpty(sceneId))
+            {
+                _logger.Log(LogLevel.Error, "Client", "SceneId is empty");
+                throw new InvalidOperationException("SceneId is empty");
+            }
+            if(_scenes.TryGetValue(sceneId, out var scene))
+            {
+                return await scene.Task;
+            }
+            return null;
+        }
+
         private async Task<SceneAddress> ParseSceneUrl(string url, CancellationToken cancellationToken)
         {
             var federation = await GetFederation(cancellationToken);
@@ -550,7 +566,7 @@ namespace Stormancer
                 var result = await this.SendSystemRequest<Stormancer.Dto.ConnectToSceneMsg, Stormancer.Dto.ConnectionResult>(_serverConnection, (byte)SystemRequestIDTypes.ID_CONNECT_TO_SCENE, parameter);
                 this._logger.Log(Stormancer.Diagnostics.LogLevel.Trace, scene.Id, string.Format("Received connection result. Scene handle: {0}", result.SceneHandle));
                 scene.CompleteConnectionInitialization(result);
-                _scenesDispatcher.AddScene(scene);
+                _scenesDispatcher.AddScene(_serverConnection, scene);
                 scene.SetConnectionState(new ConnectionStateCtx(ConnectionState.Connected));
                 if (_pluginCtx.SceneConnected != null)
                 {
@@ -665,7 +681,7 @@ namespace Stormancer
             }
 
             var sceneId = scene.Address.toUri();
-            var sceneHandle = scene.Handle;
+            var sceneHandle = scene.Host.Handle;
 
             _scenes.TryRemove(sceneId, out  _);
             UnityEngine.Debug.Log("Client disconnecting");
@@ -680,7 +696,7 @@ namespace Stormancer
             IConnection connection = _connections.GetConnection(scene.Host.Id);
             if(connection != null)
             {
-                sceneDispatcher.RemoveScene(sceneHandle);
+                sceneDispatcher.RemoveScene(_serverConnection, sceneHandle);
                 if (!initiatedByServer)
                 {
                     await SendSystemRequestVoid(connection, (byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, sceneHandle);
@@ -701,7 +717,6 @@ namespace Stormancer
             { };
             if (_serverConnection != null)
             {
-                UnityEngine.Debug.Log("Close ServerConnection");
                 _serverConnection.Close();
             }
 

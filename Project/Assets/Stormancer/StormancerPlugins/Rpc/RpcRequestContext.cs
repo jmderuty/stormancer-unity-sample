@@ -60,7 +60,7 @@ namespace Stormancer.Plugins
                 return;
             }
 
-            _scene.SendPacket(RpcClientPlugin.NextRouteName, s =>
+            _scene.Send(RpcClientPlugin.NextRouteName, s =>
             {
                 WriteRequestId(s);
                 writer(s);
@@ -76,7 +76,7 @@ namespace Stormancer.Plugins
                 return;
             }
 
-            this._scene.SendPacket(RpcClientPlugin.ErrorRouteName, s =>
+            this._scene.Send(RpcClientPlugin.ErrorRouteName, s =>
             {
                 WriteRequestId(s);
                 _peer.Serializer().Serialize(errorMsg, s);
@@ -90,7 +90,7 @@ namespace Stormancer.Plugins
                 return;
             }
 
-            this._scene.SendPacket(RpcClientPlugin.CompletedRouteName, s =>
+            this._scene.Send(RpcClientPlugin.CompletedRouteName, s =>
             {
                 s.WriteByte(_msgSent? (byte)1 : (byte)0);
 

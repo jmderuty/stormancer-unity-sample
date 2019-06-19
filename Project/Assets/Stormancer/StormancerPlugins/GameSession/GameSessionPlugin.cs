@@ -27,6 +27,7 @@
                     var service = new GameSessionService(scene);
                     service.Initialize();
                     scene.DependencyResolver.RegisterDependency(service);
+                    scene.DependencyResolver.Resolve<GameSession>().OnConnectingToScene?.Invoke(scene);
                 }
             }
         }
@@ -44,6 +45,7 @@
                 {
                     var gameSession = scene.DependencyResolver.Resolve<GameSessionService>();
                     gameSession.OnDisconnecting();
+                    scene.DependencyResolver.Resolve<GameSession>().OnDisconnectingFromScene?.Invoke(scene);
                 }
             }
         }

@@ -39,7 +39,7 @@ namespace Stormancer
         }
         public static ISerializer Serializer(this IScenePeer c)
         {
-            return c.GetComponent<ISerializer>();
+            return c.Connection.DependencyResolver.Resolve<ISerializer>();
         }
         public static ISerializer Serializer(this IConnection c)
         {

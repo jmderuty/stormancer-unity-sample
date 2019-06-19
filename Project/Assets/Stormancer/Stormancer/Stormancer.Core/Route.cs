@@ -16,9 +16,10 @@ namespace Stormancer.Core
             Handle = 0;
         }
 
-        public Route(string routeName, ushort handle, Dictionary<string, string> metadata)
+        public Route(string routeName, ushort handle, MessageOriginFilter filter, Dictionary<string, string> metadata)
         {
             Name = routeName;
+            Filter = filter;
             if (metadata == null)
             {
                 metadata = new Dictionary<string, string>();
@@ -30,6 +31,7 @@ namespace Stormancer.Core
         public Route(string routeName, Dictionary<string, string> metadata)
         {
             Name = routeName;
+            Filter = MessageOriginFilter.Host;
             if (metadata == null)
             {
                 metadata = new Dictionary<string, string>();
@@ -41,9 +43,10 @@ namespace Stormancer.Core
         /// <summary>
         /// A string containing the name of the route.
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; }
+        public MessageOriginFilter Filter { get;}
         public ushort Handle { get; set; }
-        public Dictionary<string, string> Metadata { get; private set; }
+        public Dictionary<string, string> Metadata { get; }
 
         public Action<Packet> Handlers { get; set; }
     }

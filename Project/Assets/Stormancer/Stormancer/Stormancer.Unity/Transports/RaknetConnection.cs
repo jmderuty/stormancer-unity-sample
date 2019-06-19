@@ -94,7 +94,7 @@ namespace Stormancer.Networking
             Id = id;
             Key = key;
             RaknetGuid = guid.g;
-            DependencyResolver = resolver;
+            DependencyResolver = new StormancerResolver(resolver as StormancerResolver);
             _rakPeer = peer;
             _logger = logger;
             _connectionStateObservable = new Subject<ConnectionStateCtx>();
@@ -110,6 +110,7 @@ namespace Stormancer.Networking
             _connectionStateObservable.Subscribe(onNext, onError);
 
             DependencyResolver.RegisterDependency<ChannelUidStore>(new ChannelUidStore());
+            DependencyResolver.RegisterDependency<List<Scene>>(new List<Scene>(150));
         }
 
         /// <summary>

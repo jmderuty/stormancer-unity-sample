@@ -88,7 +88,7 @@ namespace Stormancer.Plugins
                 string scene_name = "";
                 string route_name = "";
 
-                var sceneVM = clientVM.scenes.Values.FirstOrDefault(s => s.scene.Handle == scene_handle);
+                var sceneVM = clientVM.scenes.Values.FirstOrDefault(s => s.scene.Host.Handle == scene_handle);
                 if (sceneVM != null)
                 {
                     scene_name = sceneVM.scene.Id;

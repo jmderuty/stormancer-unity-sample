@@ -39,7 +39,7 @@ namespace Stormancer.Plugins
         public void Initialize()
         {
             var serializer = _scene.DependencyResolver.Resolve<ISerializer>();
-            _scene.AddRoute("match.update", (packet) =>
+            _scene.AddRoute("gamefinder.update", (packet) =>
             {
                 MainThread.Post(() =>
                 {
@@ -77,7 +77,7 @@ namespace Stormancer.Plugins
                 });
             });
 
-            _scene.AddRoute("match.ready.update", (packet) =>
+            _scene.AddRoute("gamefinder.ready.update", (packet) =>
             {
                 MainThread.Post(() =>
                 {
@@ -113,7 +113,7 @@ namespace Stormancer.Plugins
             try
             {
                 var serializer = _scene.DependencyResolver.Resolve<ISerializer>();
-                await _scene.RpcVoid("match.find", (stream) => 
+                await _scene.RpcVoid("gamefinder.find", (stream) => 
                 {
                     serializer.Serialize(provider, stream);
                     serializer.Serialize(data, stream);
@@ -144,7 +144,7 @@ namespace Stormancer.Plugins
 
         void Resolve(bool acceptMatch)
         {
-            _scene.SendPacket("match.ready.resolve", stream =>
+            _scene.Send("gamefinder.ready.resolve", stream =>
             {
                 stream.WriteByte(acceptMatch ? (byte)1 : (byte)0);
             }, PacketPriority.MEDIUM_PRIORITY, PacketReliability.RELIABLE);
@@ -155,7 +155,7 @@ namespace Stormancer.Plugins
             if (CurrentState != GameFinderStatus.Idle)
             {
                 _gameFinderCancellationSource.Cancel();
-                _scene.SendPacket("match.cancel", _ => { }, PacketPriority.IMMEDIATE_PRIORITY, PacketReliability.RELIABLE_ORDERED);
+                _scene.Send("gamefinder.cancel", _ => { }, PacketPriority.IMMEDIATE_PRIORITY, PacketReliability.RELIABLE_ORDERED);
             }
         }
     }

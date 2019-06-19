@@ -14,9 +14,12 @@ namespace Stormancer
         public byte SceneHandle { get; set; }
 
         [MessagePackMember(2)]
-        public Dictionary<string, string> Metadata { get; set; }
+        public Dictionary<string, string> SceneMetadata { get; set; } = new Dictionary<string, string>();
 
         [MessagePackMember(3)]
-        public List<RouteDto> Routes { get; set; }
+        public Dictionary<string, string> ConnectionMetadata { get; set; } = new Dictionary<string, string>();
+
+        [MessagePackMember(4)]
+        public List<RouteDto> Routes { get; set; } = new List<RouteDto>();
     }
 }

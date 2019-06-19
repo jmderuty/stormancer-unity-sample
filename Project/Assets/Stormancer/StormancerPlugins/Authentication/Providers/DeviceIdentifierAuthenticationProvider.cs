@@ -12,7 +12,7 @@ namespace Stormancer.Plugins
 
         public void Initialize()
         {
-            _identifier = SystemInfo.deviceUniqueIdentifier;
+            _identifier = UnityEngine.SystemInfo.deviceUniqueIdentifier;
             if (Application.isEditor)
             {
                 _identifier += "_Editor";

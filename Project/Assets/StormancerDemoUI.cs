@@ -253,9 +253,9 @@ public class StormancerDemoUI : MonoBehaviour
         try
         {
             var gameSession = ClientProvider.GetService<GameSession>();
-            await gameSession.ConnectToGameSession(token);
+            await gameSession.ConnectToGameSession(token, true);
             await gameSession.SetPlayerReady("");
-            await gameSession.EstablishDirectConnection(true);
+            await gameSession.EstablishDirectConnection();
         }
         catch (System.Exception ex) when (!(ex is OperationCanceledException))
         {
