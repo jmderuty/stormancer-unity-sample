@@ -150,7 +150,7 @@ namespace Stormancer
                     itemsToDelete.Add(tunnel.Key);
                     if(connection != null)
                     {
-                        await _sysCall.SendSystemRequest<bool, byte>(connection, (byte)SystemRequestIDTypes.ID_P2P_CLOSE_TUNNEL, tunnel.Key.Item2); 
+                        await _sysCall.SendSystemRequest(connection, (byte)SystemRequestIDTypes.ID_P2P_CLOSE_TUNNEL, stream => { stream.WriteByte(tunnel.Key.Item2); }); 
                     }
                 }
             }
@@ -171,7 +171,7 @@ namespace Stormancer
                 var connection = _connections.GetConnection(peerId);
                 if(connection != null)
                 {
-                    await _sysCall.SendSystemRequest<bool, byte>(connection, (byte)SystemRequestIDTypes.ID_P2P_CLOSE_TUNNEL, handle);
+                    await _sysCall.SendSystemRequest(connection, (byte)SystemRequestIDTypes.ID_P2P_CLOSE_TUNNEL, stream => { stream.WriteByte(handle); });
                 }
             }
         }

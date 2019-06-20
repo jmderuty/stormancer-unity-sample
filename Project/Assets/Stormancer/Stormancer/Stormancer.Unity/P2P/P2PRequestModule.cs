@@ -59,15 +59,6 @@ namespace Stormancer
                 return Task.CompletedTask;
             });
 
-            builder.Service((byte)SystemRequestIDTypes.ID_CONNECTED_TO_SCENE, async context =>
-            {
-                var sceneId = _serializer.Deserialize<string>(context.InputStream);
-                Scene scene = await _client.GetConnectedScene(sceneId);
-                var connection = context.Packet.Connection;
-                scene.SetPeerConnected(connection);
-                context.Send(stream => {  });
-            });
-
             builder.Service((byte)SystemRequestIDTypes.ID_CONNECT_TO_SCENE, async context =>
             {
                 var connectToSceneMessage = _serializer.Deserialize<P2PConnectToSceneMessage>(context.InputStream);
@@ -123,7 +114,16 @@ namespace Stormancer
                 
             });
 
-                builder.Service((byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, async context =>
+            builder.Service((byte)SystemRequestIDTypes.ID_CONNECTED_TO_SCENE, async context =>
+            {
+                var sceneId = _serializer.Deserialize<string>(context.InputStream);
+                Scene scene = await _client.GetConnectedScene(sceneId);
+                var connection = context.Packet.Connection;
+                scene.SetPeerConnected(connection);
+                context.Send(stream => { });
+            });
+
+            builder.Service((byte)SystemRequestIDTypes.ID_DISCONNECT_FROM_SCENE, async context =>
             {
                 var sceneId = _serializer.Deserialize<string>(context.InputStream);
                 var reason = _serializer.Deserialize<string>(context.InputStream);

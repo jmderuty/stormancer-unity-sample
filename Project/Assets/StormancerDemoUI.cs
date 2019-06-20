@@ -234,6 +234,27 @@ public class StormancerDemoUI : MonoBehaviour
             GameSession.RoleText.text = sessionParameters.IsHost ? "HOST" : "CLIENT";
         };
 
+        gameSession.OnConnectingToScene += scene =>
+        {
+            scene.AddRoute("test", packet =>
+            {
+                Debug.Log($"Received a test message from peer {packet.Connection.Id}");
+            }, MessageOriginFilter.Peer);
+
+            scene.AddRoute("testbroadcast", packet =>
+            {
+                Debug.Log($"Received a test boardcast message from peer {packet.Connection.Id}");
+            }, MessageOriginFilter.Peer);
+        };
+
+        gameSession.OnPeerConnected += peer =>
+        {
+            var peerFilter = new PeerFilter(PeerFilterType.MatchPeers, peer.Id);
+            gameSession.GetScene().Send(peerFilter, "test", stream => { });
+            var broadcastFilter = new PeerFilter(PeerFilterType.MatchAllP2P);
+            gameSession.GetScene().Send(broadcastFilter, "testbroadcast", stream => { });
+        };
+
         gameSession.OnTunnelOpened += sessionParameters =>
         {
             SetupClient(sessionParameters);
