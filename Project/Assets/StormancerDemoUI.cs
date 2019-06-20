@@ -249,10 +249,8 @@ public class StormancerDemoUI : MonoBehaviour
 
         gameSession.OnPeerConnected += peer =>
         {
-            var peerFilter = new PeerFilter(PeerFilterType.MatchPeers, peer.Id);
-            gameSession.GetScene().Send(peerFilter, "test", stream => { });
-            var broadcastFilter = new PeerFilter(PeerFilterType.MatchAllP2P);
-            gameSession.GetScene().Send(broadcastFilter, "testbroadcast", stream => { });
+            gameSession.GetScene().Send(PeerFilter.MatchPeers(peer.Connection.Key), "test", stream => { });
+            gameSession.GetScene().Send(PeerFilter.MatchAllP2P(), "testbroadcast", stream => { });
         };
 
         gameSession.OnTunnelOpened += sessionParameters =>

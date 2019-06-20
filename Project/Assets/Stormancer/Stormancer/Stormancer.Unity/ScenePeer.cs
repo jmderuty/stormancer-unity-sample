@@ -31,7 +31,7 @@ namespace Stormancer
             }
             string channelName = $"ScenePeer_{Id}_{route}";
             int channelUid = Connection.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid(channelName);
-            Connection.SendSystem(writer, 0, priority, reliability);
+            Connection.SendSystem(writer, channelUid, priority, reliability);
         }
 
         public Dictionary<string, Route> Routes { get; }

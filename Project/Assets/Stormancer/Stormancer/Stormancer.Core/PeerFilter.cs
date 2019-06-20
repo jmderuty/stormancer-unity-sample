@@ -16,7 +16,7 @@ namespace Stormancer
     {
 
         public PeerFilterType Type { get; } = PeerFilterType.MatchSceneHost;
-        public ulong[] Ids { get; }
+        public string[] Ids { get; }
 
 
         public PeerFilter()
@@ -29,15 +29,15 @@ namespace Stormancer
             Type = type;
         }
 
-        public PeerFilter(PeerFilterType type, ulong id)
+        public PeerFilter(string id)
         {
-            Type = type;
-            Ids = new ulong[] { id };
+            Type = PeerFilterType.MatchPeers;
+            Ids = new string[] { id };
         }
 
-        public PeerFilter(PeerFilterType type, ulong[] ids)
+        public PeerFilter(string[] ids)
         {
-            Type = type;
+            Type = PeerFilterType.MatchPeers;
             Ids = ids;
         }
 
@@ -52,12 +52,12 @@ namespace Stormancer
                     case 1:
                     {
                         ushort nbPeers = reader.ReadUInt16();
-                        ulong[] peers = new ulong[nbPeers];
+                        string[] peers = new string[nbPeers];
                         for (int i = 0; i < nbPeers; i++)
                         {
-                            peers[i] = reader.ReadUInt64();
+                            peers[i] = reader.ReadString();
                         }
-                        return new PeerFilter(PeerFilterType.MatchPeers, peers);
+                        return new PeerFilter(peers);
                     }
                     case 2:
                     {
@@ -76,14 +76,14 @@ namespace Stormancer
             return new PeerFilter();
         }
 
-        public static PeerFilter MatchPeers(ulong id)
+        public static PeerFilter MatchPeers(string id)
         {
-            return new PeerFilter(PeerFilterType.MatchPeers, id);
+            return new PeerFilter(id);
         }
 
-        public static PeerFilter MatchPeers(ulong[] ids)
+        public static PeerFilter MatchPeers(string[] ids)
         {
-            return new PeerFilter(PeerFilterType.MatchPeers, ids);
+            return new PeerFilter(ids);
         }
 
         public static PeerFilter MatchAllP2P()

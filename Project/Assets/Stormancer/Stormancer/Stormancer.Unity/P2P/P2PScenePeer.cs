@@ -61,17 +61,7 @@ namespace Stormancer
             {
                 throw new InvalidOperationException("Unable to send : scene destroyed");
             }
-            Route route;
-            if(!Routes.TryGetValue(routeName, out route))
-            {
-                throw new InvalidOperationException("The route '" + routeName + "' doesn't exist on the scene");
-            }
-            var channelUid = Connection.DependencyResolver.Resolve<ChannelUidStore>().GetChannelUid($"P2PScenePeer_{_scene.Id}_{routeName}");
-            Connection.SendSystem(stream => 
-            {
-                stream.WriteByte(Handle);
-                writer?.Invoke(stream);
-            }, channelUid, priority, reliability);
+            _scene.Send(PeerFilter.MatchPeers(Connection.Key), routeName, writer, priority, reliability);
         }
     }
 }

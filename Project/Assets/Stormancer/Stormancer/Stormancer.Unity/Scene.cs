@@ -38,31 +38,14 @@ namespace Stormancer
         /// <summary>
         /// A string representing the unique Id of the scene.
         /// </summary>
-        private SceneAddress _address;
-        public SceneAddress Address
-        {
-            get
-            {
-                return _address;
-            }
-        }
-
+        public SceneAddress Address { get; }
+        
         public string Id { get { return Address.SceneId; } }
 
-        private ConnectionStateCtx _connectionState = new ConnectionStateCtx(ConnectionState.Disconnected, "");
-        public ConnectionStateCtx CurrentConnectionState
-        {
-            get
-            {
-                return _connectionState;
-            }
-        }
+        private ConnectionStateCtx _connectionState = new ConnectionStateCtx(Core.ConnectionState.Disconnected, ""); 
+        public ConnectionStateCtx ConnectionState => _connectionState;
 
-        private Subject<ConnectionStateCtx> _sceneConnectionStateObservable = new Subject<ConnectionStateCtx>();
-        public Subject<ConnectionStateCtx> SceneConnectionStateObservable
-        {
-            get => _sceneConnectionStateObservable;
-        }
+        public Subject<ConnectionStateCtx> SceneConnectionStateObservable { get; } = new Subject<ConnectionStateCtx>();
 
         /// <summary>
         /// A boolean representing whether the scene is connected or not.
@@ -71,7 +54,7 @@ namespace Stormancer
         {
             get
             {
-                return _connectionState.State == ConnectionState.Connected;
+                return ConnectionState.State == Core.ConnectionState.Connected;
             }
         }
 
@@ -84,7 +67,7 @@ namespace Stormancer
             }
         }
 
-        public Dictionary<ulong, IP2PScenePeer> ConnectedPeers { get; } = new Dictionary<ulong, IP2PScenePeer>();
+        public Dictionary<string, IP2PScenePeer> ConnectedPeers { get; } = new Dictionary<string, IP2PScenePeer>();
 
         private Dictionary<string, Route> _localRoutesMap = new Dictionary<string, Route>();
         private Dictionary<string, Route> _remoteRoutesMap = new Dictionary<string, Route>();
@@ -121,7 +104,7 @@ namespace Stormancer
 
         internal Scene(IConnection connection, Client client, SceneAddress sceneAddress, string token, Stormancer.Dto.SceneInfosDto dto, StormancerResolver parentDependencyResolver, PluginBuildContext[] pluginCtxs)
         {
-            _address = sceneAddress;
+            Address = sceneAddress;
             _peer = connection;
             _token = token;
             _client = client;
@@ -150,32 +133,32 @@ namespace Stormancer
             {
                 _logger.Log(LogLevel.Error, "Scene", "Connection state change failed", exception.Message);
             };
-            _sceneConnectionStateObservable.Subscribe(onNext, onError);
+            SceneConnectionStateObservable.Subscribe(onNext, onError);
             _peer.GetConnectionStateChangedObservable().Subscribe((state) =>
             {
-                var sceneState = CurrentConnectionState;
+                var sceneState = ConnectionState;
                 // We check the connection is disconnecting, and the scene is not already disconnecting or disconnected
-                if (state.State == ConnectionState.Disconnecting && sceneState.State != ConnectionState.Disconnecting && sceneState.State != ConnectionState.Disconnected)
+                if (state.State == Core.ConnectionState.Disconnecting && sceneState.State != Core.ConnectionState.Disconnecting && sceneState.State != Core.ConnectionState.Disconnected)
                 {
                     MainThread.Post(() =>
                     {
-                        SetConnectionState(new ConnectionStateCtx(ConnectionState.Disconnecting, state.Reason));
+                        SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnecting, state.Reason));
                     });
                 }
                 // We check the connection is disconnected, and the scene is not already disconnected
-                else if (state.State == ConnectionState.Disconnected && sceneState.State != ConnectionState.Disconnected)
+                else if (state.State == Core.ConnectionState.Disconnected && sceneState.State != Core.ConnectionState.Disconnected)
                 {
                     // We ensure the scene is disconnecting
-                    if (sceneState.State != ConnectionState.Disconnecting)
+                    if (sceneState.State != Core.ConnectionState.Disconnecting)
                     {
                         MainThread.Post(() =>
                         {
-                            SetConnectionState(new ConnectionStateCtx(ConnectionState.Disconnecting, state.Reason));
+                            SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnecting, state.Reason));
                         });
                     }
                     MainThread.Post(() =>
                     {
-                        SetConnectionState(new ConnectionStateCtx(ConnectionState.Disconnected, state.Reason));
+                        SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnected, state.Reason));
                     });
                 }
             });
@@ -214,7 +197,7 @@ namespace Stormancer
 
         private void OnConnectionClosed(string reason)
         {
-            SetConnectionState(ConnectionState.Disconnected, reason);
+            SetConnectionState(Core.ConnectionState.Disconnected, reason);
         }
 
         /// <summary>
@@ -250,7 +233,7 @@ namespace Stormancer
             }
             metadata = new Dictionary<string, string>();
 
-            if (_connectionState.State != ConnectionState.Disconnected)
+            if (_connectionState.State != Core.ConnectionState.Disconnected)
             {
                 DependencyResolver.Resolve<ILogger>().Error("AddRoute failed: Tried to create a route once connected");
                 throw new InvalidOperationException("You cannot register handles once the scene is connected.");
@@ -290,7 +273,7 @@ namespace Stormancer
                     }
                     else
                     {
-                        origin = ConnectedPeers[data.Connection.Id];
+                        origin = ConnectedPeers[data.Connection.Key];
                     }
                     if(origin != null)
                     {
@@ -322,7 +305,7 @@ namespace Stormancer
                 _logger.Error("SendPacket failed: Client deleted");
                 throw new InvalidOperationException("Client deleted");
             }
-            if (_connectionState.State != ConnectionState.Connected)
+            if (_connectionState.State != Core.ConnectionState.Connected)
             {
                 _logger.Error("SendPacket failed: Tried to send message without being connected");
                 throw new InvalidOperationException("The scene must be connected to perform this operation.");
@@ -351,7 +334,7 @@ namespace Stormancer
                     {
                         throw new InvalidOperationException("Cannot Send to peers if there is no peer ids in the PeerFilter");
                     }
-                    foreach (ulong id in filter.Ids)
+                    foreach (string id in filter.Ids)
                     {
                         if (ConnectedPeers.TryGetValue(id, out var peer))
                         {
@@ -424,7 +407,7 @@ namespace Stormancer
         /// </remarks>
         public async Task Connect(CancellationToken ct)
         {
-            if(_connectionState.State == ConnectionState.Disconnected)
+            if(_connectionState.State == Core.ConnectionState.Disconnected)
             {
                 if(_client != null)
                 {
@@ -435,7 +418,7 @@ namespace Stormancer
                     throw new InvalidOperationException("Client is deleted.");
                 }
             }
-            else if(_connectionState.State == ConnectionState.Disconnecting)
+            else if(_connectionState.State == Core.ConnectionState.Disconnecting)
             {
                 throw new InvalidOperationException("Scene is disconnecting");
             }
@@ -450,7 +433,7 @@ namespace Stormancer
         public async Task Disconnect()
         {
             _logger.Log(LogLevel.Trace, "Scene", "Scene disconnecting");
-            if(_connectionState.State == ConnectionState.Connected)
+            if(_connectionState.State == Core.ConnectionState.Connected)
             {
                 if(_client != null)
                 {
@@ -463,7 +446,7 @@ namespace Stormancer
                     throw new InvalidOperationException("Client is Invalid");
                 }
             }
-            else if(_connectionState.State == ConnectionState.Connecting)
+            else if(_connectionState.State == Core.ConnectionState.Connecting)
             {
                 throw new InvalidOperationException("Client is Invalid");
             }
@@ -477,29 +460,29 @@ namespace Stormancer
             if(_connectionState.State != state && !_connectionStateObservableCompleted)
             {
                 _connectionState = new ConnectionStateCtx(state, reason);
-                _connectionStateObservableCompleted = (state == ConnectionState.Disconnected);
+                _connectionStateObservableCompleted = (state == Core.ConnectionState.Disconnected);
 
                 switch (_connectionState.State)
                 {
-                    case ConnectionState.Connecting:
+                    case Core.ConnectionState.Connecting:
                         foreach ( var plugin in _pluginCtxs)
                         {
                             plugin.SceneConnecting?.Invoke(this);
                         }
                         break;
-                    case ConnectionState.Connected:
+                    case Core.ConnectionState.Connected:
                         foreach (var plugin in _pluginCtxs)
                         {
                             plugin.SceneConnected?.Invoke(this);
                         }
                         break;
-                    case ConnectionState.Disconnecting:
+                    case Core.ConnectionState.Disconnecting:
                         foreach (var plugin in _pluginCtxs)
                         {
                             plugin.SceneDisconnecting?.Invoke(this);
                         }
                         break;
-                    case ConnectionState.Disconnected:
+                    case Core.ConnectionState.Disconnected:
                         foreach (var plugin in _pluginCtxs)
                         {
                             plugin.SceneDisconnected?.Invoke(this);
@@ -507,10 +490,10 @@ namespace Stormancer
                         break;
                 }
 
-                _sceneConnectionStateObservable.OnNext(_connectionState);
-                if(state == ConnectionState.Disconnected)
+                SceneConnectionStateObservable.OnNext(_connectionState);
+                if(state == Core.ConnectionState.Disconnected)
                 {
-                    _sceneConnectionStateObservable.OnCompleted();
+                    SceneConnectionStateObservable.OnCompleted();
                 }
             }
         }
@@ -662,7 +645,7 @@ namespace Stormancer
 
         public void SetPeerConnected(IConnection connection)
         {
-            if (ConnectedPeers.TryGetValue(connection.Id, out var peer))
+            if (ConnectedPeers.TryGetValue(connection.Key, out var peer))
             {
                 OnPeerConnected?.Invoke(peer);
             }
@@ -670,10 +653,10 @@ namespace Stormancer
 
         public IP2PScenePeer AddConnectedPeer(IConnection connection, P2PService service, P2PConnectToSceneMessage message)
         {
-            if (!ConnectedPeers.TryGetValue(connection.Id, out var peer))
+            if (!ConnectedPeers.TryGetValue(connection.Key, out var peer))
             {
                 peer = new P2PScenePeer(this, connection, service, message);
-                ConnectedPeers.Add(connection.Id, peer);
+                ConnectedPeers.Add(connection.Key, peer);
             }
             return peer;
         }

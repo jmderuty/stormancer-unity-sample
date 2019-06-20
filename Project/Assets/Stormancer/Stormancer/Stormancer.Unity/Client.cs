@@ -543,7 +543,7 @@ namespace Stormancer
         internal async Task ConnectToScene(Scene scene, string token, IEnumerable<Route> localRoutes, CancellationToken ct = default(CancellationToken))
         {
 
-            if(scene.CurrentConnectionState.State != ConnectionState.Disconnected)
+            if(scene.ConnectionState.State != ConnectionState.Disconnected)
             {
                 throw new InvalidOperationException("The scene is not in disconnected state.");
             }
@@ -624,7 +624,7 @@ namespace Stormancer
             var sceneId = endpoint.TokenData.SceneId;
 
             var scene = await GetPrivateScene(sceneToken, cancellationToken);
-            if(scene.CurrentConnectionState.State == ConnectionState.Disconnected)
+            if(scene.ConnectionState.State == ConnectionState.Disconnected)
             {
                 initializer?.Invoke(scene);
             }
