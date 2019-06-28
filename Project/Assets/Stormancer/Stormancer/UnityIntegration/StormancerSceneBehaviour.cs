@@ -30,9 +30,7 @@ namespace Stormancer
                 return this._scene;
             }
         }
-
-        public long? Id { get { return this._client.Id; } }
-
+        
         private Client _client;
 
         private TaskCompletionSource<Scene> _connectedTcs = new TaskCompletionSource<Scene>();

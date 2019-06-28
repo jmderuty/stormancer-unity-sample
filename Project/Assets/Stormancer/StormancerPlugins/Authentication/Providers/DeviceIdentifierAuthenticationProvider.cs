@@ -17,10 +17,6 @@ namespace Stormancer.Plugins
             {
                 _identifier += "_Editor";
             }
-            ClientProvider.ActivateAuthenticationPlugin();
-            ClientProvider.ActivateGameSessionPlugin();
-            ClientProvider.ActivateGameFinderPlugin();
-            ClientProvider.ActivatePartyPlugin();
         }
 
         public Task<AuthParameters> GetAuthArgs()

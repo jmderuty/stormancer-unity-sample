@@ -1,7 +1,7 @@
 ﻿
 namespace Stormancer.Plugins
 {
-    interface IClientPlugin
+    public interface IClientPlugin
     {
         void Build(PluginBuildContext ctx);
     }

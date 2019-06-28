@@ -831,11 +831,6 @@ namespace Stormancer
         }
 
         /// <summary>
-        /// The client's unique Stormancer Id. Returns null if the Id has not been acquired yet (connection still in progress).
-        /// </summary>
-        public long? Id { get { return this._transport.Id; } }
-
-        /// <summary>
         /// The server connection's ping, in milliseconds.
         /// </summary>
         public int ServerPing { get { return this._serverConnection.Ping; } }

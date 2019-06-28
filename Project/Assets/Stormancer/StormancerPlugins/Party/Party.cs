@@ -124,11 +124,7 @@ namespace Stormancer.Plugins
 
         public async Task LeaveParty()
         {
-            if(_party == null)
-            {
-                _logger.Log(Diagnostics.LogLevel.Warn, "PartyManagement", "Client not connected on party");
-            }
-            else
+            if (_party != null)
             {
                 try
                 {
@@ -223,18 +219,18 @@ namespace Stormancer.Plugins
             {
                 OnPartyJoined?.Invoke();
             };
-            partyService.OnPartyKicked += () =>
+            partyService.OnPartyKicked += async () =>
             {
-                OnPartyKicked?.Invoke();
+                if (_party != null)
+                {
+                    OnPartyKicked?.Invoke();
+                }
             };
             partyService.OnPartyLeft += async () =>
             {
                 if(_party != null)
                 {
-                    var partyContainer = await _party;
-                    var gameFinderName = partyContainer.Settings.GameFinderName;
-                    _party = null;
-                    await _gameFinder.DisconnectFromGameFinder(gameFinderName);
+                    await DisconnectFromParty();
                     OnPartyLeft?.Invoke();
                 }
             };
@@ -251,6 +247,14 @@ namespace Stormancer.Plugins
                 OnPartySettingsUpdated?.Invoke(settings);
             };
             return container;
+        }
+
+        private async Task DisconnectFromParty()
+        {
+            var partyContainer = await _party;
+            var gameFinderName = partyContainer.Settings.GameFinderName;
+            _party = null;
+            await _gameFinder.DisconnectFromGameFinder(gameFinderName);
         }
 
         private async Task<PartyManagementService> GetPartyManagementService()

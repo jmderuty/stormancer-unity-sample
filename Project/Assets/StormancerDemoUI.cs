@@ -70,7 +70,7 @@ public class StormancerDemoUI : MonoBehaviour
 {
     public InputField UserIdField;
 
-    public AuthenticationPropertyHolder Authentication; 
+    public AuthenticationPropertyHolder Authentication;
 
     public GameFinderPropertyHolder GameFinder;
 
@@ -91,10 +91,10 @@ public class StormancerDemoUI : MonoBehaviour
     }
 
     private void Update()
-    { 
-        if(ClientProvider.ClientId != 0)
+    {
+        var auth = ClientProvider.GetService<AuthenticationService>();
+        if (auth != null)
         {
-            var auth = ClientProvider.GetService<AuthenticationService>();
             UserIdField.text = auth.UserId;
         }
     }
@@ -120,13 +120,12 @@ public class StormancerDemoUI : MonoBehaviour
         }
         catch (System.Exception ex)
         {
-            Debug.LogError("An error occurred on Login "+ex.Message);
+            Debug.LogError("An error occurred on Login " + ex.Message);
         }
     }
 
     private void OnDestroy()
     {
-        Debug.Log("ON DESTROY");
         ClientProvider.CloseClient();
     }
 
@@ -134,7 +133,7 @@ public class StormancerDemoUI : MonoBehaviour
     {
 #if UNITY_EDITOR
         //this will avoid the UI to change when we stop playing in editor
-        if(EditorApplication.isPlaying)
+        if (EditorApplication.isPlaying)
         {
 #endif
 
@@ -142,7 +141,7 @@ public class StormancerDemoUI : MonoBehaviour
             {
                 Authentication.OnConnected.Invoke();
             }
-            else if(gameConnectionStateCtx.State == GameConnectionState.Disconnected)
+            else if (gameConnectionStateCtx.State == GameConnectionState.Disconnected)
             {
                 Authentication.OnDisconnected.Invoke();
             }
@@ -163,7 +162,7 @@ public class StormancerDemoUI : MonoBehaviour
     {
         _ = StartMatchmakingAsync();
     }
-    
+
     private async Task StartMatchmakingAsync()
     {
         try
@@ -189,7 +188,7 @@ public class StormancerDemoUI : MonoBehaviour
             Debug.LogError("An error occurred during CancelMatchMaking " + ex.Message);
         }
     }
-    
+
     public void RegisterGameFinderCallbacks()
     {
         var gameFinder = ClientProvider.GetService<GameFinder>();
@@ -286,7 +285,7 @@ public class StormancerDemoUI : MonoBehaviour
     {
         if (_netClient == null)
         {
-            NetworkServer.Shutdown(); 
+            NetworkServer.Shutdown();
         }
         else
         {
@@ -299,7 +298,7 @@ public class StormancerDemoUI : MonoBehaviour
 
     private void SetupServer(GameSessionConnectionParameters param)
     {
-        
+
         if (!NetworkServer.active)
         {
             var config = ClientProvider.GetService<ClientConfiguration>();
@@ -423,7 +422,7 @@ public class StormancerDemoUI : MonoBehaviour
     {
         var gameSession = ClientProvider.GetService<GameSession>();
         EndGameDto dto = new EndGameDto();
-        dto.Score = UnityEngine.Random.Range(0,10000);
+        dto.Score = UnityEngine.Random.Range(0, 10000);
         dto.LeaderboardName = "TesterUnity";
         GameSession.PostResultCancellationSource = new CancellationTokenSource();
         _lastGameResult = await gameSession.PostResult(dto, GameSession.PostResultCancellationSource.Token);
@@ -456,7 +455,7 @@ public class StormancerDemoUI : MonoBehaviour
             var userScoreContainer = container.GetChild(i);
             var texts = userScoreContainer.GetComponentsInChildren<Text>();
             texts[0].text = score.Key;
-            texts[1].text = score.Value; 
+            texts[1].text = score.Value;
             i++;
         }
     }
@@ -467,7 +466,7 @@ public class StormancerDemoUI : MonoBehaviour
 
     public void ToggleInvitationVisibility()
     {
-        if(_invitationVisible)
+        if (_invitationVisible)
         {
             HideInvitations();
         }
@@ -502,7 +501,7 @@ public class StormancerDemoUI : MonoBehaviour
     }
 
     public async Task CreatePartyAsync()
-    { 
+    {
         try
         {
             var party = ClientProvider.GetService<Party>();
@@ -543,7 +542,7 @@ public class StormancerDemoUI : MonoBehaviour
         var texts = Party.PartyUserPanel.GetComponentsInChildren<Text>();
         for (int i = 0; i < texts.Length; i++)
         {
-            if(i < users.Length)
+            if (i < users.Length)
             {
                 texts[i].text = users[i].UserId;
                 if (users[i].UserId == myUserId)
@@ -561,10 +560,10 @@ public class StormancerDemoUI : MonoBehaviour
     private void DisplayPartyInvitations(PartyInvitation[] invitations)
     {
         ShowInvitations();
-        for (int i = 0; i < Party.PartyInvitationPanel.childCount-1; i++)
+        for (int i = 0; i < Party.PartyInvitationPanel.childCount - 1; i++)
         {
             var child = Party.PartyInvitationPanel.GetChild(i);
-            if(i < invitations.Length)
+            if (i < invitations.Length)
             {
                 child.gameObject.SetActive(true);
                 var textComponent = child.GetComponentInChildren<Text>();
@@ -695,7 +694,7 @@ public class StormancerDemoUI : MonoBehaviour
         try
         {
             var party = ClientProvider.GetService<Party>();
-            if(await party.PromoteLeader(Party.UserIdTextField.text))
+            if (await party.PromoteLeader(Party.UserIdTextField.text))
             {
                 Party.LeaderUI.SetActive(false);
             }
@@ -800,7 +799,7 @@ public class StormancerDemoUI : MonoBehaviour
 
     private void DisplayLeaderboard(LeaderboardResult result)
     {
-        if(result.Next != null && result.Next != "")
+        if (result.Next != null && result.Next != "")
         {
             Leaderboard.NextCursor.gameObject.SetActive(true);
         }
@@ -824,7 +823,7 @@ public class StormancerDemoUI : MonoBehaviour
 
         for (int i = 0; i < 10; i++)
         {
-            if(i < result.Results.Count)
+            if (i < result.Results.Count)
             {
                 var res = result.Results[i];
                 var rank = ranks.GetChild(i).GetComponent<Text>();
@@ -842,9 +841,9 @@ public class StormancerDemoUI : MonoBehaviour
                     userId.color = Color.black;
                     score.color = Color.black;
                 }
-                rank.text = ""+res.Ranking;
+                rank.text = "" + res.Ranking;
                 userId.text = res.ScoreRecord.Id;
-                score.text = ""+res.ScoreRecord.Score;
+                score.text = "" + res.ScoreRecord.Score;
             }
             else
             {

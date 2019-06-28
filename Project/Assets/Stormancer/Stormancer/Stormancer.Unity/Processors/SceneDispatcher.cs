@@ -57,7 +57,7 @@ namespace Stormancer.Processors
                 var handles = getHandles(connection);
                 if (handles != null)
                 {
-                    handles.RemoveAt(sceneHandle - (byte)MessageIDTypes.ID_SCENES);
+                    handles.Insert(sceneHandle - (byte)MessageIDTypes.ID_SCENES, null);
                 }
             }
         }
@@ -69,7 +69,7 @@ namespace Stormancer.Processors
                 return false;
             }
             var handles = getHandles(packet.Connection);
-            var scene = handles.ElementAt(sceneHandle - (byte)MessageIDTypes.ID_SCENES);
+            var scene = handles.ElementAtOrDefault(sceneHandle - (byte)MessageIDTypes.ID_SCENES);
             if (scene == null)
             {
                 var queue = _waitingPackets.GetOrAdd(sceneHandle, handle => new ConcurrentQueue<Packet>());

@@ -10,11 +10,11 @@ namespace Stormancer
 {
     public class ClientBehaviour : MonoBehaviour
     {
-#warning TODO: Setup accountId, applicationName and endpoints.
-        private string _accountId = "unity";
-        private string _applicationName = "dev";
+//#error TODO: Setup accountId, applicationName and endpoints.
+        private string _accountId = "sample-unity";
+        private string _applicationName = "sample";
 
-        private List<string> _serverEndpoints = new List<string>() { "http://127.0.0.1" };
+        private List<string> _serverEndpoints = new List<string>() { "http://gc3.stormancer.com" };
 
         private bool _debugLog = true;
 
@@ -25,7 +25,14 @@ namespace Stormancer
         public void Awake()
         {
             DontDestroyOnLoad(gameObject);
+//#error TODO: Select an authenticationProvider and Add the plugin you'll need
             _authenticationProvider = new RandomAuthenticationProvider();
+            ClientProvider.AddPlugin(new AuthenticationPlugin());
+            ClientProvider.AddPlugin(new GameSessionPlugin());
+            ClientProvider.AddPlugin(new GameFinderPlugin());
+            ClientProvider.AddPlugin(new PartyPlugin());
+            ClientProvider.AddPlugin(new LeaderboardPlugin());
+            ClientProvider.ActivateDebugLog();
             Initialize();
         }
 

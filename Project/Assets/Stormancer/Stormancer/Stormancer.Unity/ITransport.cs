@@ -71,8 +71,6 @@ namespace Stormancer.Networking
         /// </summary>
         string Name { get; }
 
-        long? Id { get; }
-
         void Stop();
 
         void OpenNat(string address);

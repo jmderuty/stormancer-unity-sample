@@ -50,6 +50,7 @@ namespace Stormancer
             }
         }
 
+
         public static T GetService<T>()
         {
             return Instance.GetService<T>();
@@ -95,33 +96,14 @@ namespace Stormancer
             Instance.DisconnectScene(SceneId);
         }
 
-        public static void ActivateAuthenticationPlugin()
-        {
-            Instance.AuthenticationPlugin = true;
-        }
-
-        public static void ActivateGameFinderPlugin()
-        {
-            Instance.GameFinderPlugin = true;
-        }
-
-        public static void ActivatePartyPlugin()
-        {
-            Instance.PartyPlugin = true;
-        }
-
-        public static void ActivateGameSessionPlugin()
-        {
-            Instance.GameSessionPlugin = true;
-        }
-
-        public static void ActivateLeaderboardPlugin()
-        {
-            Instance.LeaderboardPlugin = true;
-        }
         public static void ActivateDebugLog()
         {
-            Instance.DebugLog = true;
+            Instance.UseDebug = true;
+        }
+
+        public static void AddPlugin(IClientPlugin plugin)
+        {
+            Instance.Plugins.Add(plugin);
         }
 
         public static event Action<string> OnDisconnected
@@ -133,14 +115,6 @@ namespace Stormancer
             remove
             {
                 Instance.OnDisconnected -= value;
-            }
-        }
-
-        public static long ClientId
-        {
-            get
-            {
-                return Instance.GetClientId();
             }
         }
 
@@ -178,31 +152,8 @@ namespace Stormancer
             {
                 get; set;
             }
-            public bool AuthenticationPlugin
-            {
-                get; set;
-            }
-            public bool DebugLog
-            {
-                get; set;
-            }
-            public bool GameFinderPlugin
-            {
-                get; set;
-            }
-            public bool PartyPlugin
-            {
-                get; set;
-            }
-            public bool GameSessionPlugin
-            {
-                get; set;
-            }
-            public bool LeaderboardPlugin
-            {
-                get; set;
-            }
-
+            public List<IClientPlugin> Plugins {get; set;} = new List<IClientPlugin>();
+            public bool UseDebug { get; set; }
 
             public Action<ClientConfiguration> OnClientConfiguration { get; set; }
 
@@ -235,19 +186,6 @@ namespace Stormancer
             private Client _client;
             private ConcurrentDictionary<string, Scene> _scenes = new ConcurrentDictionary<string, Scene>();
 
-            /// <summary>
-            /// return the stormancer client id if connected,
-            /// otherwise return 0
-            /// </summary>
-            /// <returns></returns>
-            public long GetClientId()
-            {
-                if (_client == null || _client.Id == null)
-                {
-                    return 0;
-                }
-                return _client.Id.Value;
-            }
 
             public Networking.AddressType SocketAddressType
             {
@@ -333,29 +271,8 @@ namespace Stormancer
                 {
                     config.ServerEndpoints = ServerEndpoints;
                 }
-
-                if (AuthenticationPlugin)
-                {
-                    config.Plugins.Add(new AuthenticationPlugin());
-                }
-                if (GameFinderPlugin)
-                {
-                    config.Plugins.Add(new GameFinderPlugin());
-                }
-                if (GameSessionPlugin)
-                {
-                    config.Plugins.Add(new GameSessionPlugin());
-                }
-                if (LeaderboardPlugin)
-                {
-                    config.Plugins.Add(new LeaderboardPlugin());
-                }
-                if (PartyPlugin)
-                {
-                    config.Plugins.Add(new PartyPlugin());
-                }
-
-                if (DebugLog)
+                config.Plugins.AddRange(Plugins);
+                if(UseDebug)
                 {
                     config.Logger = DebugLogger.Instance;
                 }

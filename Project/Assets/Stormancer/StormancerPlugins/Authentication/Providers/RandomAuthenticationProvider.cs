@@ -9,11 +9,7 @@ namespace Stormancer.Plugins
     {
         public void Initialize()
         {
-            ClientProvider.ActivateAuthenticationPlugin();
-            ClientProvider.ActivateGameSessionPlugin();
-            ClientProvider.ActivateGameFinderPlugin();
-            ClientProvider.ActivatePartyPlugin();
-            ClientProvider.ActivateLeaderboardPlugin();
+            
         }
 
         public Task<AuthParameters> GetAuthArgs()

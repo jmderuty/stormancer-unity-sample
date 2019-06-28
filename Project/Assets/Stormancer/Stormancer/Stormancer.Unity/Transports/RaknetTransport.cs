@@ -397,11 +397,6 @@ namespace Stormancer.Networking
             }
         }
 
-        private void OnConnectionIdReceived(long p)
-        {
-            Id = p;
-        }
-
         #region message handling
 
         private IConnection OnConnection(RakNet.SystemAddress systemAddress, RakNetGUID guid, ulong peerId, PendingConnection request)
@@ -617,8 +612,6 @@ namespace Stormancer.Networking
             get;
             private set;
         }
-
-        public long? Id { get; private set; }
 
         public void Stop()
         {
