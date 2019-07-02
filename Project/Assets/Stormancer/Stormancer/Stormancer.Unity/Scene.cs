@@ -633,8 +633,7 @@ namespace Stormancer
             connectToSceneMessage.ConnectionMetadata = connection.Metadata;
             connectToSceneMessage.SceneMetadata = GetSceneMetadata();
 
-            var message = await SendSystemRequest<P2PConnectToSceneMessage, P2PConnectToSceneMessage>(connection, (byte)SystemRequestIDTypes.ID_CONNECT_TO_SCENE, connectToSceneMessage, ct);
-            _logger.Log(LogLevel.Debug, "Debug", "Received response from ID_CONNECT_TO_SCENE, adding the peerConnected");
+            var message = await SendSystemRequest<P2PConnectToSceneMessage, P2PConnectToSceneMessage>(connection, (byte)SystemRequestIDTypes.ID_CONNECT_TO_SCENE, connectToSceneMessage);
             var peer = AddConnectedPeer(connection, p2pService, message);
             var requestProcessor = DependencyResolver.Resolve<RequestProcessor>();
             var serializer = DependencyResolver.Resolve<ISerializer>();

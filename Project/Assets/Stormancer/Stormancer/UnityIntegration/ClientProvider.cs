@@ -50,7 +50,11 @@ namespace Stormancer
             }
         }
 
-
+        /// <summary>
+        /// Return the service of type T from the client
+        /// </summary>
+        /// <typeparam name="T">Type of the service</typeparam>
+        /// <returns>The service of type T</returns>
         public static T GetService<T>()
         {
             return Instance.GetService<T>();
@@ -70,21 +74,44 @@ namespace Stormancer
             }
         }
 
+        /// <summary>
+        /// Return the service of type T from the scene
+        /// </summary>
+        /// <typeparam name="T">Type of the service</typeparam>
+        /// <param name="scene">The id of the scene to get the service from</param>
+        /// <returns>The service of type T</returns>
         public static Task<T> GetService<T>(string scene)
         {
             return Instance.GetService<T>(scene);
         }
 
+        /// <summary>
+        /// Return the public scene with the id sceneid
+        /// </summary>
+        /// <param name="sceneid">the id of the public scene to return</param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>the public scene with the id sceneid</returns>
         public static Task<Scene> GetPublicScene(string sceneid, CancellationToken cancellationToken = default(CancellationToken))
         {
             return Instance.GetPublicScene(sceneid, cancellationToken);
         }
 
+        /// <summary>
+        /// Connect and execute the sceneInitializer callback on the public scene with Id sceneId, then return the scene
+        /// </summary>
+        /// <param name="sceneId">the id of the public scene</param>
+        /// <param name="sceneInitializer">Initialisation callback</param>
+        /// <returns>the connected and initialized public scene with id sceneId</returns>
         public static Task<Scene> ConnectToPublicScene(string sceneId, Action<Scene> sceneInitializer)
         {
             return Instance.ConnectToPublicScene(sceneId, sceneInitializer);
         }
 
+        /// <summary>
+        /// Return a private scene from it's connection token
+        /// </summary>
+        /// <param name="token">Connection token of the private scene</param>
+        /// <returns>the private scene</returns>
         public static Task<Scene> GetPrivateScene(string token)
         {
             return Instance.GetPrivateScene(token);
@@ -96,11 +123,18 @@ namespace Stormancer
             Instance.DisconnectScene(SceneId);
         }
 
+        /// <summary>
+        /// Configuration method to activate stormancer log to be displayed in unity
+        /// </summary>
         public static void ActivateDebugLog()
         {
             Instance.UseDebug = true;
         }
 
+        /// <summary>
+        /// Configuration method to add a stormancer plugin
+        /// </summary>
+        /// <param name="plugin">Stormancer plugin to add</param>
         public static void AddPlugin(IClientPlugin plugin)
         {
             Instance.Plugins.Add(plugin);
@@ -153,7 +187,7 @@ namespace Stormancer
                 get; set;
             }
             public List<IClientPlugin> Plugins {get; set;} = new List<IClientPlugin>();
-            public bool UseDebug { get; set; }
+            public bool UseDebug { get; set; } = false;
 
             public Action<ClientConfiguration> OnClientConfiguration { get; set; }
 

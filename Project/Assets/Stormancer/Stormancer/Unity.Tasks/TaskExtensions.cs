@@ -8,29 +8,6 @@ namespace Stormancer
 {
     public static class TaskExtensions
     {
-
-        public static Task TimeOut(this Task task, int milliseconds)
-        {
-            return task.TimeOut(TimeSpan.FromMilliseconds(milliseconds));
-        }
-
-        public static async Task TimeOut(this Task task, TimeSpan delay)
-        {
-            var cts = new CancellationTokenSource(delay);
-            await Task.Run(() => task, cts.Token);
-        }
-
-        public static Task<TResult> TimeOut<TResult>(this Task<TResult> task, int milliseconds)
-        {
-            return task.TimeOut(TimeSpan.FromMilliseconds(milliseconds));
-        }
-
-        public static async Task<TResult> TimeOut<TResult>(this Task<TResult> task, TimeSpan delay)
-        {
-            var cts = new CancellationTokenSource(delay);            
-            return await Task.Run<TResult>(() => task, cts.Token);
-        }
-
         public static Task InvokeWrapping(this Func<Task> func)
         {
             try

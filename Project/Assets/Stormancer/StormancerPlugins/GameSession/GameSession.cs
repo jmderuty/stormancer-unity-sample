@@ -207,7 +207,7 @@ namespace Stormancer.Plugins
             container.Service.OnRoleReceived += (role) =>
             {
                 GameSessionConnectionParameters parameters = new GameSessionConnectionParameters();
-                if(parameters.IsHost || role == "CLIENT" && !useTunnel)
+                if(role == "HOST" || role == "CLIENT" && !useTunnel)
                 {
                     parameters.IsHost = (role == "HOST");
                     OnRoleReceived?.Invoke(parameters);

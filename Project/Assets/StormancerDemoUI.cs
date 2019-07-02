@@ -226,6 +226,7 @@ public class StormancerDemoUI : MonoBehaviour
         };
         gameSession.OnRoleReceived += sessionParameters =>
         {
+            Debug.Log("OnRoleReceived : "+ (sessionParameters.IsHost ? "HOST" : "CLIENT"));
             if (sessionParameters.IsHost)
             {
                 SetupServer(sessionParameters);
@@ -248,6 +249,7 @@ public class StormancerDemoUI : MonoBehaviour
 
         gameSession.OnPeerConnected += peer =>
         {
+            Debug.Log($"OnPeerConnected sessionId {peer.Connection.Key}");
             gameSession.GetScene().Send(PeerFilter.MatchPeers(peer.Connection.Key), "test", stream => { });
             gameSession.GetScene().Send(PeerFilter.MatchAllP2P(), "testbroadcast", stream => { });
         };
@@ -271,7 +273,7 @@ public class StormancerDemoUI : MonoBehaviour
         try
         {
             var gameSession = ClientProvider.GetService<GameSession>();
-            await gameSession.ConnectToGameSession(token, true);
+            await gameSession.ConnectToGameSession(token, false);
             await gameSession.SetPlayerReady("");
             await gameSession.EstablishDirectConnection();
         }
@@ -298,7 +300,7 @@ public class StormancerDemoUI : MonoBehaviour
 
     private void SetupServer(GameSessionConnectionParameters param)
     {
-
+        Debug.Log("Setup server");
         if (!NetworkServer.active)
         {
             var config = ClientProvider.GetService<ClientConfiguration>();

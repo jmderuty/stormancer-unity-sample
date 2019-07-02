@@ -10,22 +10,18 @@ namespace Stormancer
 {
     public class ClientBehaviour : MonoBehaviour
     {
-//#error TODO: Setup accountId, applicationName and endpoints.
+#error TODO: Setup accountId, applicationName and endpoints.
         private string _accountId = "sample-unity";
         private string _applicationName = "sample";
 
         private List<string> _serverEndpoints = new List<string>() { "http://gc3.stormancer.com" };
-
-        private bool _debugLog = true;
-
-        public StringEvent OnDisconnected;
 
         private IAuthenticationProvider _authenticationProvider;
 
         public void Awake()
         {
             DontDestroyOnLoad(gameObject);
-//#error TODO: Select an authenticationProvider and Add the plugin you'll need
+#error TODO: Select an authenticationProvider and Add the plugin you'll need
             _authenticationProvider = new RandomAuthenticationProvider();
             ClientProvider.AddPlugin(new AuthenticationPlugin());
             ClientProvider.AddPlugin(new GameSessionPlugin());
@@ -47,16 +43,6 @@ namespace Stormancer
             if (_serverEndpoints.Any())
             {
                 ClientProvider.SetServerEndpoint(_serverEndpoints);
-            }
-
-            if (_debugLog)
-            {
-                ClientProvider.ActivateDebugLog();
-            }
-
-            if (OnDisconnected != null)
-            {
-                ClientProvider.OnDisconnected += (s => MainThread.Post(() => OnDisconnected.Invoke(s)));
             }
         }
     }

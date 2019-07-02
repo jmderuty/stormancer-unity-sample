@@ -3,6 +3,7 @@
 using Stormancer;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Http
@@ -31,6 +32,6 @@ namespace Http
         string GetHeader(string name);
         List<string> GetHeaders(string name);
         void SetHeader(string name, string value);
-        Task<IResponse> Send(ILogger logger);
+        Task<IResponse> Send(ILogger logger, CancellationToken ct = default(CancellationToken));
     }
 }

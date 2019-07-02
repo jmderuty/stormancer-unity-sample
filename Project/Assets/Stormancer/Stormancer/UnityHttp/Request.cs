@@ -106,9 +106,10 @@ namespace Http
             headers[name].Add(value);
         }
 
-        public Task<IResponse> Send(ILogger logger)
+        public Task<IResponse> Send(ILogger logger, CancellationToken ct = default(CancellationToken))
         {
             var tcs = new TaskCompletionSource<IResponse>();
+            ct.Register(() => tcs.TrySetCanceled());
             isDone = false;
             state = RequestState.Waiting;
             if (acceptGzip)

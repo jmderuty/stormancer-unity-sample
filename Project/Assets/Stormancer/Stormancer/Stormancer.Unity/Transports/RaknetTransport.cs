@@ -669,20 +669,22 @@ namespace Stormancer.Networking
         public async Task<int> SendPing(string address, int number, CancellationToken cancellationToken)
         {
             TaskCompletionSource<int> tcs = new TaskCompletionSource<int>();
+            CancellationTokenSource cts = cancellationToken.CanBeCanceled ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken) : new CancellationTokenSource();
+            var ct = cts.Token;
+            ct.Register(() => tcs.TrySetCanceled());
             _pendingPings.TryAdd(address, tcs);
             var eventSetTask = tcs.Task;
-            CancellationTokenSource cts = cancellationToken.CanBeCanceled ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken) : new CancellationTokenSource();
             List<Task<bool>> tasks = new List<Task<bool>>();
             for (int i = 0; i < number; i++)
             {
                 tasks.Add(Task.Run(async () =>
                 {
-                    await Task.Delay(300 * i, cts.Token);
+                    await Task.Delay(300 * i, ct);
 
                     var result = await SendPingImplTask(address);
                     return result;
 
-                }, cts.Token));
+                }, ct));
             }
 
             _ = Task.Run(async () =>
@@ -704,11 +706,12 @@ namespace Stormancer.Networking
                      _logger.Log(LogLevel.Error, "RakNetTransport", $"Pings to {address} failed : unreachable address");
                      tcs.SetResult(-1);
                  }
-             }, cts.Token);
+             }, ct);
 
             try
             {
-                return await tcs.Task.TimeOut(1500);
+                cts.CancelAfter(1500);
+                return await tcs.Task;
             }
             catch (System.Exception ex)
             {

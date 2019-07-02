@@ -129,19 +129,23 @@ namespace Stormancer
             var request = requestFactory();
             try
             {
-                return await request.Send(_logger).TimeOut(firstTry);
+                var firstTryCts = new CancellationTokenSource(firstTry);
+                return await request.Send(_logger, firstTryCts.Token);
             }
             catch (Exception)
             {
                 _logger.Debug("First call to API timed out.");
                 try
                 {
-                    return await request.Send(_logger).TimeOut(secondTry);
+                    var secondTryCts = new CancellationTokenSource(secondTry);
+                    return await request.Send(_logger, secondTryCts.Token);
                 }
                 catch (Exception)
                 {
                     _logger.Debug("Second call to API timed out.");
-                    return await request.Send(_logger).TimeOut(secondTry * 2);
+                    var thirdTryCts = new CancellationTokenSource(secondTry *2);
+
+                    return await request.Send(_logger, thirdTryCts.Token);
                 }
             }
         }

@@ -103,14 +103,12 @@ namespace Stormancer
 
                 connectToSceneResponse.ConnectionMetadata = context.Packet.Connection.Metadata;
                 connectToSceneResponse.SceneMetadata = scene.GetSceneMetadata();
-                _logger.Log(LogLevel.Debug, "Debug", "Send response ID_CONNECT_TO_SCENE");
                 context.Send(stream =>
                 {
                     _serializer.Serialize(connectToSceneResponse, stream);
                 });
 
                 scene.AddConnectedPeer(connection, p2pService, connectToSceneMessage);
-                _logger.Log(LogLevel.Debug, "Debug", "Add connectedPeer");
                 
             });
 
@@ -159,8 +157,6 @@ namespace Stormancer
             {
                 var candidate = _serializer.Deserialize<ConnectivityCandidate>(context.InputStream);
 
-                _logger.Log(LogLevel.Debug, "p2p", "Starting connectivity test (CLIENT) ");
-
                 var connection = _connections.GetConnection(candidate.ListeningPeer);
                 if (connection != null && connection.GetConnectionState().State == ConnectionState.Connected)
                 {
@@ -200,7 +196,7 @@ namespace Stormancer
                 else
                 {
                     var latency = await _transport.SendPing(candidate.ListeningEndpointCandidate.Address);
-                    _logger.Log(LogLevel.Debug, "p2p", "Connectivity test complete ping : " + latency);
+                    
                     context.Send(stream =>
                     {
                         _serializer.Serialize(latency, stream);
@@ -211,19 +207,18 @@ namespace Stormancer
             builder.Service((byte)SystemRequestIDTypes.ID_P2P_TEST_CONNECTIVITY_HOST, context =>
             {
                 var candidate = _serializer.Deserialize<ConnectivityCandidate>(context.InputStream);
-                _logger.Log(LogLevel.Debug, "p2p", "Starting connectivity test (Listener)");
 
                 var connection = _connections.GetConnection(candidate.ClientPeer);
                 if (connection != null && connection.GetConnectionState().State == ConnectionState.Connected)
                 {
-                    context.Send(stream => { });
+                    context.Send(stream => {});
                     return Task.CompletedTask;
                 }
                 if (string.IsNullOrEmpty(_config.DedicatedServerEndpoint) && _config.EnableNatPunchthrough)
                 {
                     _transport.OpenNat(candidate.ClientEndpointCandidate.Address);
                 }
-                context.Send(stream => { });
+                context.Send(stream => {});
                 return Task.CompletedTask;
             });
 
