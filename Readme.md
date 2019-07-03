@@ -13,7 +13,7 @@ private List<string> _serverEndpoints = new List<string>() { "http://gc3.storman
 
 Then  there  is the authentication provider (how you  will  authenticate  with  stormancer) and the plugins you  will use in you  project.
 ```cs
-//#error TODO: Select an authenticationProvider and Add the plugin you'll need
+#error TODO: Select an authenticationProvider and Add the plugin you'll need
 _authenticationProvider = new RandomAuthenticationProvider();
 ClientProvider.AddPlugin(new AuthenticationPlugin());
 ClientProvider.AddPlugin(new GameSessionPlugin());
@@ -29,7 +29,7 @@ The two #error tag are here to tell the user to change those parameters, once yo
 
 ## Serializer unity generation tool
 
-To work efficiently, we need to generate Serializer for our data that will be send through internet. To do this we made a unity editor tool. If you have to modify the data that you will send with messages, you will need to generate the custom serializer for this data. If you want to add a new data structure, you will also have to generate the related serializer. One important point is that the tool will generate from the latest building version of your source. This mean that you will have to fix have a compiling version to generate the serializer. There is also a clear serializer option to remove all custom serializer. If you don’t generate a custom serializer for your data, it will be generated at runtime.
+To work efficiently, we need to generate Serializer for our data that will be send through internet. To do this we made a unity editor tool. If you have to modify the data that you will send with messages, you will need to generate the custom serializer for this data. If you want to add a new data structure, you will also have to generate the related serializer. One important point is that the tool will generate from the latest building version of your source. This mean that you will have to fix have a compiling version to generate the serializer. There is also a clear serializer option to remove all custom serializer. If you don’t generate a custom serializer for your data, it will be generated at runtime. You can find those tools in the "Stormancer" dropdown menu in Unity editor.
 
 ## ClientProvider
 
