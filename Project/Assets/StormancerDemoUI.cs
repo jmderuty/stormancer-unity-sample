@@ -214,26 +214,46 @@ public class StormancerDemoUI : MonoBehaviour
     private void RegisterGameSessionCallbacks()
     {
         var gameSession = ClientProvider.GetService<GameSession>();
+        // Triggers when all players are ready
         gameSession.OnAllPlayerReady += () =>
         {
             GameSession.OnAllPlayerReady.Invoke();
         };
 
+        // Triggers when the game session is shutting down
         gameSession.OnShutdownReceived += () =>
         {
             GameSession.OnSessionLeaved.Invoke();
             GameSession.PostResultCancellationSource?.Cancel();
         };
+        // Triggers when you receive your role in the game session (HOST or CLIENT)
         gameSession.OnRoleReceived += sessionParameters =>
         {
-            Debug.Log("OnRoleReceived : "+ (sessionParameters.IsHost ? "HOST" : "CLIENT"));
+            string role = (sessionParameters.IsHost ? "HOST" : "CLIENT");
+            Debug.Log("OnRoleReceived : "+ role);
             if (sessionParameters.IsHost)
             {
-                SetupServer(sessionParameters);
+                SetupUNetServer(sessionParameters);
             }
-            GameSession.RoleText.text = sessionParameters.IsHost ? "HOST" : "CLIENT";
+            GameSession.RoleText.text = role;
         };
 
+        // Triggers when the game session connection status changed
+        gameSession.OnGameSessionConnectionChanged += state =>
+        {
+            if (state.State == ConnectionState.Disconnected)
+            {
+                ShutdownUnityConnection();
+            }
+        };
+
+        // Triggers when the P2PTunnel is open (only with P2P and tunnel enable)
+        gameSession.OnTunnelOpened += sessionParameters =>
+        {
+            SetupUNetClient(sessionParameters);
+        };
+
+        // Triggers when the client connects to a scene
         gameSession.OnConnectingToScene += scene =>
         {
             scene.AddRoute("test", packet =>
@@ -247,24 +267,11 @@ public class StormancerDemoUI : MonoBehaviour
             }, MessageOriginFilter.Peer);
         };
 
+        // Triggers when a peer connects to me with P2P
         gameSession.OnPeerConnected += peer =>
         {
-            Debug.Log($"OnPeerConnected sessionId {peer.Connection.Key}");
             gameSession.GetScene().Send(PeerFilter.MatchPeers(peer.Connection.Key), "test", stream => { });
             gameSession.GetScene().Send(PeerFilter.MatchAllP2P(), "testbroadcast", stream => { });
-        };
-
-        gameSession.OnTunnelOpened += sessionParameters =>
-        {
-            SetupClient(sessionParameters);
-        };
-
-        gameSession.OnGameSessionConnectionChanged += state =>
-        {
-            if (state.State == ConnectionState.Disconnected)
-            {
-                ShutdownUnityConnection();
-            }
         };
     }
 
@@ -273,8 +280,11 @@ public class StormancerDemoUI : MonoBehaviour
         try
         {
             var gameSession = ClientProvider.GetService<GameSession>();
-            await gameSession.ConnectToGameSession(token, false);
+            // Second parameter is useTunnel, if useTunnel is true, stormancer will be used as a tunnel for other network system (eg: UNET). Else, you will directly use stormancer
+            await gameSession.ConnectToGameSession(token, true);
+            // You need to set the player Ready. The game session only starts when all player are ready
             await gameSession.SetPlayerReady("");
+            // EstablishDirectConnection is to enable P2P connection.
             await gameSession.EstablishDirectConnection();
         }
         catch (System.Exception ex) when (!(ex is OperationCanceledException))
@@ -298,7 +308,7 @@ public class StormancerDemoUI : MonoBehaviour
 
     // Server
 
-    private void SetupServer(GameSessionConnectionParameters param)
+    private void SetupUNetServer(GameSessionConnectionParameters param)
     {
         Debug.Log("Setup server");
         if (!NetworkServer.active)
@@ -354,7 +364,7 @@ public class StormancerDemoUI : MonoBehaviour
     }
 
     // CLIENT
-    private void SetupClient(GameSessionConnectionParameters param)
+    private void SetupUNetClient(GameSessionConnectionParameters param)
     {
         Debug.Log("SetupClient");
         _netClient = new NetworkClient();
@@ -509,7 +519,7 @@ public class StormancerDemoUI : MonoBehaviour
             var party = ClientProvider.GetService<Party>();
             PartyRequestDto request = new PartyRequestDto();
             request.GameFinderName = "matchmakerdefault";
-            request.PartySize = 1;
+            request.PartySize = 2;
             request.StartOnlyIfPartyFull = false;
             var partyContainer = await party.CreateParty(request);
         }
@@ -715,22 +725,27 @@ public class StormancerDemoUI : MonoBehaviour
     {
         var party = ClientProvider.GetService<Party>();
 
+        // Triggered when a new player enters the party or when one leaves or is kicked
         party.OnPartyMembersUpdated += (users) =>
         {
             DisplayPartyMembers(users);
         };
+        // Triggers when you are kicked from a party
         party.OnPartyKicked += () =>
         {
             LeaveParty();
         };
+        // Triggers when you leave a party
         party.OnPartyLeft += () =>
         {
             Party.OnPartyLeaved.Invoke();
         };
+        //Triggers when you join a party
         party.OnPartyJoined += () =>
         {
             Party.OnPartyJoined.Invoke();
         };
+        // Triggers when you receive a party invitation
         party.OnInvitationsUpdate += DisplayPartyInvitations;
 
     }
