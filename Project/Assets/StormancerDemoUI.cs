@@ -84,15 +84,37 @@ public class StormancerDemoUI : MonoBehaviour
     private GameSessionResult _lastGameResult;
     private NetworkClient _netClient;
     private short _unityMessageId = 1000;
+    private int _clientId;
 
     public void Awake()
     {
         DontDestroyOnLoad(gameObject);
+        _clientId = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+        InitializeStormancerClient();
+    }
+
+    private void InitializeStormancerClient()
+    {
+#error this step is mendatory for you to configure, you can change the Authentication provider, the configuration account and the plugin used
+        var authenticationProvider = new RandomAuthenticationProvider();
+        authenticationProvider.Initialize();
+        var config = ClientConfiguration.ForAccount("sample-unity", "sample");
+        config.TaskGetAuthParameters = authenticationProvider.GetAuthArgs();
+        config.ServerEndpoints = new List<string>() { "http://gc3.stormancer.com" };
+        config.Plugins.Add(new AuthenticationPlugin());
+        config.Plugins.Add(new GameSessionPlugin());
+        config.Plugins.Add(new GameFinderPlugin());
+        config.Plugins.Add(new PartyPlugin());
+        config.Plugins.Add(new LeaderboardPlugin());
+        // This enable the log of stormancer in unity
+        config.Logger = DebugLogger.Instance;
+        ClientFactory.SetConfig(_clientId, () => { return config; });
     }
 
     private void Update()
     {
-        var auth = ClientProvider.GetService<AuthenticationService>();
+        var client = ClientFactory.GetClient(_clientId);
+        var auth = client.DependencyResolver.Resolve<AuthenticationService>();
         if (auth != null)
         {
             UserIdField.text = auth.UserId;
@@ -110,7 +132,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var auth = ClientProvider.GetService<AuthenticationService>();
+            var client = ClientFactory.GetClient(_clientId);
+            var auth = client.DependencyResolver.Resolve<AuthenticationService>();
             auth.OnGameConnectionStateChanged += CheckConnectionState;
             await auth.Login();
             // this is useful to initialize Party (especially to set the operation handler to party.invite, that allows us to receive party invitations)
@@ -126,7 +149,9 @@ public class StormancerDemoUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        ClientProvider.CloseClient();
+
+        var client = ClientFactory.GetClient(_clientId);
+        client.Dispose();
     }
 
     private void CheckConnectionState(GameConnectionStateCtx gameConnectionStateCtx)
@@ -167,7 +192,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var gameFinder = ClientProvider.GetService<GameFinder>();
+            var client = ClientFactory.GetClient(_clientId);
+            var gameFinder = client.DependencyResolver.Resolve<GameFinder>();
             await gameFinder.FindGame("matchmakerdefault", "json", "{}");
         }
         catch (System.Exception ex)
@@ -180,7 +206,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var gameFinder = ClientProvider.GetService<GameFinder>();
+            var client = ClientFactory.GetClient(_clientId);
+            var gameFinder = client.DependencyResolver.Resolve<GameFinder>();
             gameFinder.Cancel("matchmakerdefault");
         }
         catch (System.Exception ex)
@@ -191,7 +218,8 @@ public class StormancerDemoUI : MonoBehaviour
 
     public void RegisterGameFinderCallbacks()
     {
-        var gameFinder = ClientProvider.GetService<GameFinder>();
+        var client = ClientFactory.GetClient(_clientId);
+        var gameFinder = client.DependencyResolver.Resolve<GameFinder>();
         gameFinder.OnGameFinderStateChanged += statusChangedEvent =>
         {
             GameFinder.GameFinderStatusText.text = statusChangedEvent.Status.ToString();
@@ -213,7 +241,8 @@ public class StormancerDemoUI : MonoBehaviour
 
     private void RegisterGameSessionCallbacks()
     {
-        var gameSession = ClientProvider.GetService<GameSession>();
+        var client = ClientFactory.GetClient(_clientId);
+        var gameSession = client.DependencyResolver.Resolve<GameSession>();
         // Triggers when all players are ready
         gameSession.OnAllPlayerReady += () =>
         {
@@ -230,7 +259,7 @@ public class StormancerDemoUI : MonoBehaviour
         gameSession.OnRoleReceived += sessionParameters =>
         {
             string role = (sessionParameters.IsHost ? "HOST" : "CLIENT");
-            Debug.Log("OnRoleReceived : "+ role);
+            Debug.Log("OnRoleReceived : " + role);
             if (sessionParameters.IsHost)
             {
                 SetupUNetServer(sessionParameters);
@@ -279,7 +308,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var gameSession = ClientProvider.GetService<GameSession>();
+            var client = ClientFactory.GetClient(_clientId);
+            var gameSession = client.DependencyResolver.Resolve<GameSession>();
             // Second parameter is useTunnel, if useTunnel is true, stormancer will be used as a tunnel for other network system (eg: UNET). Else, you will directly use stormancer
             await gameSession.ConnectToGameSession(token, true);
             // You need to set the player Ready. The game session only starts when all player are ready
@@ -313,7 +343,8 @@ public class StormancerDemoUI : MonoBehaviour
         Debug.Log("Setup server");
         if (!NetworkServer.active)
         {
-            var config = ClientProvider.GetService<ClientConfiguration>();
+            var client = ClientFactory.GetClient(_clientId);
+            var config = client.DependencyResolver.Resolve<ClientConfiguration>();
             Debug.Log($"SetupServer on port {config.ServerGamePort}");
             NetworkServer.RegisterHandler(MsgType.Connect, OnClientConnected);
             NetworkServer.RegisterHandler(MsgType.Disconnect, OnClientDisconnected);
@@ -414,11 +445,12 @@ public class StormancerDemoUI : MonoBehaviour
 
     private async Task LeaveGameSessionAsync()
     {
-        var gameSession = ClientProvider.GetService<GameSession>();
+        var client = ClientFactory.GetClient(_clientId);
+        var gameSession = client.DependencyResolver.Resolve<GameSession>();
         GameSession.PostResultCancellationSource?.Cancel();
         await gameSession.DisconnectFromGameSession();
         GameSession.OnSessionLeaved.Invoke();
-        var party = ClientProvider.GetService<Party>();
+        var party = client.DependencyResolver.Resolve<Party>();
         if (party.IsInParty)
         {
             Party.OnPartyJoined?.Invoke();
@@ -432,7 +464,8 @@ public class StormancerDemoUI : MonoBehaviour
 
     public async Task PostResultAsync()
     {
-        var gameSession = ClientProvider.GetService<GameSession>();
+        var client = ClientFactory.GetClient(_clientId);
+        var gameSession = client.DependencyResolver.Resolve<GameSession>();
         EndGameDto dto = new EndGameDto();
         dto.Score = UnityEngine.Random.Range(0, 10000);
         dto.LeaderboardName = "TesterUnity";
@@ -450,7 +483,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var gameSession = ClientProvider.GetService<GameSession>();
+            var client = ClientFactory.GetClient(_clientId);
+            var gameSession = client.DependencyResolver.Resolve<GameSession>();
             await gameSession.SetPlayerReady("");
         }
         catch (System.Exception ex)
@@ -516,8 +550,9 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var party = ClientProvider.GetService<Party>();
-            PartyRequestDto request = new PartyRequestDto();
+            var client = ClientFactory.GetClient(_clientId);
+            var party = client.DependencyResolver.Resolve<Party>();
+            var request = new PartyRequestDto();
             request.GameFinderName = "matchmakerdefault";
             request.PartySize = 2;
             request.StartOnlyIfPartyFull = false;
@@ -538,7 +573,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var party = ClientProvider.GetService<Party>();
+            var client = ClientFactory.GetClient(_clientId);
+            var party = client.DependencyResolver.Resolve<Party>();
             await party.LeaveParty();
             Party.OnPartyLeaved.Invoke();
         }
@@ -550,7 +586,8 @@ public class StormancerDemoUI : MonoBehaviour
 
     private void DisplayPartyMembers(PartyUserDto[] users)
     {
-        var myUserId = ClientProvider.GetService<AuthenticationService>().UserId;
+        var client = ClientFactory.GetClient(_clientId);
+        var myUserId = client.DependencyResolver.Resolve<AuthenticationService>().UserId;
         var texts = Party.PartyUserPanel.GetComponentsInChildren<Text>();
         for (int i = 0; i < texts.Length; i++)
         {
@@ -597,7 +634,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var party = ClientProvider.GetService<Party>();
+            var client = ClientFactory.GetClient(_clientId);
+            var party = client.DependencyResolver.Resolve<Party>();
             List<PartyInvitation> invitations = party.Invitations.GetPartyInvitations();
             PartyInvitation currentInvitation = invitations.Find(element => element.UserId == text.text);
             if (currentInvitation != null)
@@ -620,7 +658,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var party = ClientProvider.GetService<Party>();
+            var client = ClientFactory.GetClient(_clientId);
+            var party = client.DependencyResolver.Resolve<Party>();
             party.Invitations.AnswerPartyInvitation(text.text, false);
         }
         catch (System.Exception ex)
@@ -638,7 +677,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var party = ClientProvider.GetService<Party>();
+            var client = ClientFactory.GetClient(_clientId);
+            var party = client.DependencyResolver.Resolve<Party>();
             // this is to avoid status change when we leave the party and reset the toggle
             if (party.IsInParty)
             {
@@ -660,7 +700,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var party = ClientProvider.GetService<Party>();
+            var client = ClientFactory.GetClient(_clientId);
+            var party = client.DependencyResolver.Resolve<Party>();
             await party.SendInvitation(Party.UserIdTextField.text);
         }
         catch (System.Exception ex)
@@ -679,7 +720,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var party = ClientProvider.GetService<Party>();
+            var client = ClientFactory.GetClient(_clientId);
+            var party = client.DependencyResolver.Resolve<Party>();
             var user = Party.UserIdTextField.text;
             if (await party.KickPlayer(user))
             {
@@ -705,7 +747,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var party = ClientProvider.GetService<Party>();
+            var client = ClientFactory.GetClient(_clientId);
+            var party = client.DependencyResolver.Resolve<Party>();
             if (await party.PromoteLeader(Party.UserIdTextField.text))
             {
                 Party.LeaderUI.SetActive(false);
@@ -723,7 +766,8 @@ public class StormancerDemoUI : MonoBehaviour
 
     private void RegisterPartyCallbacks()
     {
-        var party = ClientProvider.GetService<Party>();
+        var client = ClientFactory.GetClient(_clientId);
+        var party = client.DependencyResolver.Resolve<Party>();
 
         // Triggered when a new player enters the party or when one leaves or is kicked
         party.OnPartyMembersUpdated += (users) =>
@@ -765,7 +809,8 @@ public class StormancerDemoUI : MonoBehaviour
             var query = new LeaderboardQuery();
             query.Size = 10;
             query.LeaderboardName = "TesterUnity";
-            var leaderboard = ClientProvider.GetService<Leaderboard>();
+            var client = ClientFactory.GetClient(_clientId);
+            var leaderboard = client.DependencyResolver.Resolve<Leaderboard>();
             Leaderboard.CurrentResult = await leaderboard.Query(query);
             DisplayLeaderboard(Leaderboard.CurrentResult);
         }
@@ -785,7 +830,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var leaderboard = ClientProvider.GetService<Leaderboard>();
+            var client = ClientFactory.GetClient(_clientId);
+            var leaderboard = client.DependencyResolver.Resolve<Leaderboard>();
             Leaderboard.CurrentResult = await leaderboard.Query(Leaderboard.CurrentResult.Next);
             DisplayLeaderboard(Leaderboard.CurrentResult);
         }
@@ -804,7 +850,8 @@ public class StormancerDemoUI : MonoBehaviour
     {
         try
         {
-            var leaderboard = ClientProvider.GetService<Leaderboard>();
+            var client = ClientFactory.GetClient(_clientId);
+            var leaderboard = client.DependencyResolver.Resolve<Leaderboard>();
             Leaderboard.CurrentResult = await leaderboard.Query(Leaderboard.CurrentResult.Previous);
             DisplayLeaderboard(Leaderboard.CurrentResult);
         }
@@ -833,7 +880,8 @@ public class StormancerDemoUI : MonoBehaviour
         {
             Leaderboard.PreviousCursor.gameObject.SetActive(false);
         }
-        var myUserId = ClientProvider.GetService<AuthenticationService>().UserId;
+        var client = ClientFactory.GetClient(_clientId);
+        var myUserId = client.DependencyResolver.Resolve<AuthenticationService>().UserId;
         var ranks = Leaderboard.LeaderboardPanel.GetChild(0);
         var userIds = Leaderboard.LeaderboardPanel.GetChild(1);
         var scores = Leaderboard.LeaderboardPanel.GetChild(2);

@@ -86,12 +86,9 @@ namespace Stormancer.Plugins
             return await ConnectToPrivateSceneByToken(sceneToken, sceneBuilder);
         }
 
-        public async Task<Scene> ConnectToPrivateSceneByToken(string token, SceneBuilder sceneBuilder)
+        public Task<Scene> ConnectToPrivateSceneByToken(string token, SceneBuilder sceneBuilder)
         {
-            var scene = await ClientProvider.GetPrivateScene(token);
-            sceneBuilder?.Invoke(scene);
-            await scene.Connect();
-            return scene;
+            return _client.ConnectToPrivateScene(token, scene => { sceneBuilder(scene); });
         }
 
         public async Task<Scene> GetSceneForService(string serviceType, string serviceName = "", CancellationToken cancellationToken = default(CancellationToken))
@@ -140,23 +137,7 @@ namespace Stormancer.Plugins
 
             return await tcs.Task;           
         }
-
-        // get userId
-        public Task<string> GetUserFromBearerToken(string token)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<string> GetBearerToken()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<string> GetUserIdByPseudo(string pseudo)
-        {
-            throw new NotImplementedException();
-        }
-
+        
         public async Task<TResult> SendRequestToUser<TData, TResult>(string userId, string operation, CancellationToken cancellationToken, params TData[] datas)
         {
             var scene = await GetAuthenticationScene();
@@ -273,17 +254,6 @@ namespace Stormancer.Plugins
             return await LoginImpl(retry);
         }
 
-        private Task OnSendRequestReceived(RequestContext<IScenePeer> requestCtx)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void OnSceneConnectionStateChanged(ConnectionStateCtx connectionState)
-        {
-           
-
-        }
-
         private void SetConnectionState(GameConnectionStateCtx stateCtx)
         {
             if(_gameConnectionStateCtx.State != stateCtx.State)
@@ -320,11 +290,6 @@ namespace Stormancer.Plugins
                     OnGameConnectionStateChanged?.Invoke(stateCtx);
                 }
             }
-        }
-
-        internal Task<object> DevelopmentLogin(string connectionId)
-        {
-            throw new NotImplementedException("Doesn't exist anymore in the client version");
         }
 
     }

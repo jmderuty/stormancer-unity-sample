@@ -2,40 +2,40 @@
 
 ## Configuration:
 
-In `ClientBehavior.cs` there is two things that you’ll need to configure. First, you’ll need to setup your accountId, applicationName and serverEndpoint. Those are used to configure the connection to Stormancer  Server Application. By default, it will point to the unity sample Server application, so you can test the sample directly without any modification.
-```cs 
-#error TODO: Setup accountId, applicationName and endpoints.
-private string _accountId = "sample-unity";
-private string _applicationName = "sample";
+First you will need to configure your stormancer client.
+- Select your authenticationProvider and initialize it
+- Get the configuration for your server application account (this will create a new one if there is none)
+- Set the TaskGetAuthParameters of the configuration, this is how the authentication provider will find the connection information
+- Set the server endpoints of the configuration
+- Add all the plugin you will use in your game / application
+- (optionnal) enable the DebugLogger to see stormancer logs in unity, do not set config.Logger otherwise
+- Set the config in the ClientFactory with an Id that will be used to get the client corresponding to this configuration
 
-private List<string> _serverEndpoints = new List<string>() { "http://gc3.stormancer.com" };
-```
+Here is an example in `InitializeStormancerClient` in `StormancerDemoUI.cs`
 
-Then  there  is the authentication provider (how you  will  authenticate  with  stormancer) and the plugins you  will use in you  project.
 ```cs
-#error TODO: Select an authenticationProvider and Add the plugin you'll need
-_authenticationProvider = new RandomAuthenticationProvider();
-ClientProvider.AddPlugin(new AuthenticationPlugin());
-ClientProvider.AddPlugin(new GameSessionPlugin());
-ClientProvider.AddPlugin(new GameFinderPlugin());
-ClientProvider.AddPlugin(new PartyPlugin());
-ClientProvider.AddPlugin(new LeaderboardPlugin());
-ClientProvider.ActivateDebugLog();
+#error this step is mendatory for you to configure, you can change the Authentication provider, the configuration account and the plugin used
+var authenticationProvider = new RandomAuthenticationProvider();
+authenticationProvider.Initialize();
+var config = ClientConfiguration.ForAccount("sample-unity", "sample");
+config.TaskGetAuthParameters = authenticationProvider.GetAuthArgs();
+config.ServerEndpoints = new List<string>() { "http://gc3.stormancer.com" };
+config.Plugins.Add(new AuthenticationPlugin());
+config.Plugins.Add(new GameSessionPlugin());
+config.Plugins.Add(new GameFinderPlugin());
+config.Plugins.Add(new PartyPlugin());
+config.Plugins.Add(new LeaderboardPlugin());
+// This enable the log of stormancer in unity
+config.Logger = DebugLogger.Instance;
+ClientFactory.SetConfig(_clientId, () => { return config; });
 ```
 
-As ClientBehavior  is a MonoBehaviour, we  need  it to be  attached to an object in the scene
-
-The two #error tag are here to tell the user to change those parameters, once you have changed it you can comment them.
+The #error tag is here to tell the user to change those parameters, once you have changed it you can comment it.
 
 ## Serializer unity generation tool
 
 To work efficiently, we need to generate Serializer for our data that will be send through internet. To do this we made a unity editor tool. If you have to modify the data that you will send with messages, you will need to generate the custom serializer for this data. If you want to add a new data structure, you will also have to generate the related serializer. One important point is that the tool will generate from the latest building version of your source. This mean that you will have to fix have a compiling version to generate the serializer. There is also a clear serializer option to remove all custom serializer. If you don’t generate a custom serializer for your data, it will be generated at runtime. You can find those tools in the "Stormancer" dropdown menu in Unity editor.
 
-## ClientProvider
-
-ClientProvider is the link to your Stormancer  client from it you can get any service from Stormancer (Authentication, Leaderboard, GameFinder, etc...). It is also used to configure your client, by adding the different plugins that you will need. ClientProvider is static to ease the access to Stormancer services.
-
-example : `AuthenticationService auth = ClientProvider.GetService<AuthenticationService>();`
 
 ## Authentication plugin
 
@@ -46,7 +46,8 @@ example : `AuthenticationService auth = ClientProvider.GetService<Authentication
 
 
 ```cs
-AuthenticationService auth = ClientProvider.GetService<AuthenticationService>();
+var client = ClientFactory.GetClient(_clientId);
+var auth = client.DependencyResolver.Resolve<AuthenticationService>();
 auth.OnGameConnectionStateChanged += CheckConnectionState;
 await auth.Login();
 ```
@@ -58,12 +59,14 @@ await auth.Login();
 - FindGame
 - Cancel FindGame
 ```cs
-var gameFinder = ClientProvider.GetService<GameFinder>();
+var client = ClientFactory.GetClient(_clientId);
+var gameFinder = client.DependencyResolver.Resolve<GameFinder>();
 await gameFinder.FindGame("matchmakerdefault", "json", "{}");
 ```
 GameFinder callbacks
 ```cs
-var gameFinder = ClientProvider.GetService<GameFinder>();
+var client = ClientFactory.GetClient(_clientId);
+var gameFinder = client.DependencyResolver.Resolve<GameFinder>();
 gameFinder.OnGameFinderStateChanged += statusChangedEvent =>
 {
     // Game finder Status changed (Idle, Searching, Success, Failed, ...)
@@ -88,7 +91,8 @@ gameFinder.OnGameFound += gameFoundEvent =>
 - Peer to Peer connection with EstablishDirectConnection
 
 ```cs
-var gameSession = ClientProvider.GetService<GameSession>();
+var client = ClientFactory.GetClient(_clientId);
+var gameSession = client.DependencyResolver.Resolve<GameSession>();
 // Second parameter is useTunnel, if useTunnel is true, stormancer will be used as a tunnel for 
 // other network system (eg: UNET). Else, you will directly use stormancer
 await gameSession.ConnectToGameSession(token, true);
@@ -101,7 +105,8 @@ await gameSession.EstablishDirectConnection();
 GameSession callbacks
 
 ```cs
-var gameSession = ClientProvider.GetService<GameSession>();
+var client = ClientFactory.GetClient(_clientId);
+var gameSession = client.DependencyResolver.Resolve<GameSession>();
 // Triggers when all players are ready
 gameSession.OnAllPlayerReady += () =>
 {
@@ -172,7 +177,8 @@ gameSession.OnPeerConnected += peer =>
 var query = new LeaderboardQuery();
 query.Size = 10;
 query.LeaderboardName = "TesterUnity";
-var leaderboard = ClientProvider.GetService<Leaderboard>();
+var client = ClientFactory.GetClient(_clientId);
+var leaderboard = client.DependencyResolver.Resolve<Leaderboard>();
 var leaderboardResult = await leaderboard.Query(query);
 ```
 
@@ -187,7 +193,8 @@ var leaderboardResult = await leaderboard.Query(query);
 - Promote player to party leader (only for the party leader)
 
 ```cs
-var party = ClientProvider.GetService<Party>();
+var client = ClientFactory.GetClient(_clientId);
+var party = client.DependencyResolver.Resolve<Party>();
 PartyRequestDto request = new PartyRequestDto();
 request.GameFinderName = "matchmakerdefault";
 request.PartySize = 2;
@@ -196,7 +203,8 @@ var partyContainer = await party.CreateParty(request);
 ```
 Party callbacks
 ```cs
-var party = ClientProvider.GetService<Party>();
+var client = ClientFactory.GetClient(_clientId);
+var party = client.DependencyResolver.Resolve<Party>();
 
 // Triggered when a new player enters the party or when one leaves or is kicked
 party.OnPartyMembersUpdated += (users) =>

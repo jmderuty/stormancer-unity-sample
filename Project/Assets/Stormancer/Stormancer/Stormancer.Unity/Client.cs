@@ -135,6 +135,16 @@ namespace Stormancer
             }
         }
 
+        public static Client Create(ClientConfiguration config)
+        {
+            if(config == null)
+            {
+                return null;
+            }
+            var client = new Client(config);
+            client.Initialize();
+            return client;
+        }
 
 
         private Stopwatch _watch = new Stopwatch();
@@ -580,7 +590,7 @@ namespace Stormancer
             }
         }
 
-        internal async Task<Scene> ConnectToPublicScene(string sceneId, Action<Scene> sceneInitializer = null, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<Scene> ConnectToPublicScene(string sceneId, Action<Scene> sceneInitializer = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             Scene scene = await GetPublicScene(sceneId, cancellationToken);
             if (scene.GetCurrentConnectionState() == ConnectionState.Disconnected)

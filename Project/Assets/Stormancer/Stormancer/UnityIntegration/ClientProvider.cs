@@ -10,8 +10,36 @@ using System.Threading;
 namespace Stormancer
 {
 
-    public static class ClientProvider
+    public static class ClientFactory
     {
+        private static ConcurrentDictionary<int, Client> _clients = new ConcurrentDictionary<int, Client>();
+        private static ConcurrentDictionary<int, Func<ClientConfiguration>> _configurators = new ConcurrentDictionary<int, Func<ClientConfiguration>>();
+
+        public static void SetConfig(int clientId, Func<ClientConfiguration> configurator)
+        {
+            _configurators.TryRemove(clientId, out _);
+            _configurators.TryAdd(clientId, configurator);
+        }
+
+        public static Client GetClient(int clientId)
+        {
+            if(!_clients.TryGetValue(clientId, out var client))
+            {
+                if(!_configurators.TryGetValue(clientId, out var configurator))
+                {
+                    throw new InvalidOperationException("Missing configuration");
+                }
+                client = Client.Create(configurator());
+                _clients.TryAdd(clientId, client);
+            }
+            return client;
+        }
+
+        public static void ReleaseClient(int clientId)
+        {
+            _clients.TryRemove(clientId, out _);
+        }
+
         private static ClientProviderImpl _instance;
         private static ClientProviderImpl Instance
         {
