@@ -1,4 +1,5 @@
 ﻿using Stormancer.Core;
+using Stormancer.Diagnostics;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,22 +41,18 @@ namespace Stormancer.Plugins
             _auth.SetOperationHandler("party.invite", context =>
             {
                 TaskCompletionSource<Unit> tcs = new TaskCompletionSource<Unit>(context.RequestContext.CancellationToken);
-                MainThread.Post(() =>
+                var senderId = context.OriginId;
+                var sceneId = _serializer.Deserialize<string>(context.RequestContext.InputStream);
+                var invitation = _invitations.ReceivePartyInvitation(senderId, sceneId);
+                invitation.OnAnswer += answer =>
                 {
-
-                    var senderId = context.OriginId;
-                    var sceneId = _serializer.Deserialize<string>(context.RequestContext.InputStream);
-                    var invitation = _invitations.ReceivePartyInvitation(senderId, sceneId);
-                    invitation.OnAnswer += answer =>
-                    {
-                        context.RequestContext.SendValue(steam => { }, Core.PacketPriority.MEDIUM_PRIORITY);
-                        tcs.SetResult(new Unit());
-                    };
-                    context.RequestContext.CancellationToken.Register(() =>
-                    {
-                        tcs.TrySetCanceled();
-                        _invitations.RemovePartyInvitation(senderId);
-                    });
+                    context.RequestContext.SendValue(steam => { }, Core.PacketPriority.MEDIUM_PRIORITY);
+                    tcs.SetResult(new Unit());
+                };
+                context.RequestContext.CancellationToken.Register(() =>
+                {
+                    tcs.TrySetCanceled();
+                    _invitations.RemovePartyInvitation(senderId);
                 });
                 return tcs.Task;
             });

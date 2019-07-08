@@ -10,6 +10,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Stormancer;
+using Stormancer.Diagnostics;
 
 namespace Http
 {

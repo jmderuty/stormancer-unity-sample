@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Stormancer.Diagnostics;
 
 namespace Stormancer
 {
@@ -119,7 +120,7 @@ namespace Stormancer
             request.AddHeader("Content-Type", "application/msgpack");
             request.AddHeader("Accept", "application/json");
             request.AddHeader("x-version", "1.0.0");
-            logger.Trace("Sending endpoint request to remote server : "+ uri);
+            logger.Trace("APIClient", "Sending endpoint request to remote server : "+ uri);
             return request;
         }
 
@@ -134,7 +135,7 @@ namespace Stormancer
             }
             catch (Exception)
             {
-                _logger.Debug("First call to API timed out.");
+                _logger.Debug("APIClient", "First call to API timed out.");
                 try
                 {
                     var secondTryCts = new CancellationTokenSource(secondTry);
@@ -142,7 +143,7 @@ namespace Stormancer
                 }
                 catch (Exception)
                 {
-                    _logger.Debug("Second call to API timed out.");
+                    _logger.Debug("APIClient", "Second call to API timed out.");
                     var thirdTryCts = new CancellationTokenSource(secondTry *2);
 
                     return await request.Send(_logger, thirdTryCts.Token);

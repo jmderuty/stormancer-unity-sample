@@ -55,10 +55,5 @@ namespace Stormancer
                 return TaskHelper.FromException<TResult>(ex);
             }
         }
-
-        public static Coroutine AsCouroutine(this Task task)
-        {
-            return MainThread.CoroutineFromTask(task);
-        }
     }
 }

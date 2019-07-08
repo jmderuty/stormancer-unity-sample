@@ -1,5 +1,6 @@
 ﻿
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -184,14 +185,15 @@ namespace Stormancer.Plugins
             var container = new GameSessionContainer();
             container.Scene = gameSessionScene;
             OnGameSessionConnectionChanged?.Invoke(new ConnectionStateCtx(ConnectionState.Connected));
-            TaskCompletionSource<GameSessionConnectionParameters> sessionReadyTcs = new TaskCompletionSource<GameSessionConnectionParameters>();
+            var sessionReadyTcs = new TaskCompletionSource<GameSessionConnectionParameters>();
             container.GameSessionReadyTask = sessionReadyTcs.Task;
 
             gameSessionScene.SceneConnectionStateObservable.Subscribe((state) =>
             {
                 if(state.State == ConnectionState.Disconnected)
                 {
-                    MainThread.Post(() =>
+                    var synchronizationContext = gameSessionScene.DependencyResolver.Resolve<SynchronizationContext>();
+                    synchronizationContext.SafePost(() =>
                     {
                         OnGameSessionConnectionChanged?.Invoke(state);
                     });

@@ -1,4 +1,5 @@
 ﻿using Stormancer.Core;
+using Stormancer.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -7,8 +8,6 @@ using UniRx;
 
 namespace Stormancer.Plugins
 {
-    public delegate void SceneBuilder(Scene scene);
-    public delegate void ConnectionStateChanged(GameConnectionStateCtx gameConnectionStateCtx);
 
     public class AuthenticationService
     {
@@ -38,9 +37,9 @@ namespace Stormancer.Plugins
             }
         }
 
-        public Task<AuthParameters> OnGetAuthParameters;
+        public Func<Task<AuthParameters>> OnGetAuthParameters { get; set; }
 
-        public ConnectionStateChanged OnGameConnectionStateChanged;
+        public Action<GameConnectionStateCtx> OnGameConnectionStateChanged;
 
         public AuthenticationService(Client client)
         {
@@ -79,14 +78,14 @@ namespace Stormancer.Plugins
             _operationHandlers.Add(operation, handler);
         }
 
-        public async Task<Scene> ConnectToPrivateScene(string sceneId, SceneBuilder sceneBuilder)
+        public async Task<Scene> ConnectToPrivateScene(string sceneId, Action<Scene> sceneBuilder)
         {
             var authScene = await GetAuthenticationScene();
             var sceneToken = await authScene.RpcTask<string, string>("sceneauthorization.gettoken", sceneId);
             return await ConnectToPrivateSceneByToken(sceneToken, sceneBuilder);
         }
 
-        public Task<Scene> ConnectToPrivateSceneByToken(string token, SceneBuilder sceneBuilder)
+        public Task<Scene> ConnectToPrivateSceneByToken(string token, Action<Scene> sceneBuilder)
         {
             return _client.ConnectToPrivateScene(token, scene => { sceneBuilder(scene); });
         }
@@ -212,7 +211,7 @@ namespace Stormancer.Plugins
                     });
                 });
 
-                AuthParameters authParameters = (await OnGetAuthParameters);
+                AuthParameters authParameters = (await OnGetAuthParameters());
 
                 LoginResult result = await authenticationScene.RpcTask<AuthParameters, LoginResult>(LOGIN_ROUTE, authParameters);
 
@@ -233,7 +232,7 @@ namespace Stormancer.Plugins
             }
             catch(Exception exception)
             {
-                _logger.Log(Diagnostics.LogLevel.Error, "authentication", "An error occured while trying to connect to the server.\n"+exception.Message);
+                _logger.Log(LogLevel.Error, "authentication", "An error occured while trying to connect to the server.\n"+exception.Message);
                 if(_autoReconnect && _gameConnectionStateCtx.State != GameConnectionState.Disconnected)
                 {
                     return await Reconnect(retry + 1);

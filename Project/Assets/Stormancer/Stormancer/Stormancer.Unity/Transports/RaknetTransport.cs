@@ -74,7 +74,7 @@ namespace Stormancer.Networking
         private void Run(CancellationToken token, ushort? serverPort, ushort maxConnections, TaskCompletionSource<bool> startupTcs, AddressType addressType)
         {
             IsRunning = true;
-            _logger.Info("Starting raknet transport " + _type);
+            _logger.Info("RakNet", "Starting raknet transport " + _type);
             RakPeerInterface server;
             try
             {
@@ -98,7 +98,7 @@ namespace Stormancer.Networking
 
             if ((Socket.OSSupportsIPv4 && addressType == AddressType.Ipv4) || forceIpv4)
             {
-                _logger.Debug("using address type Ipv4");
+                _logger.Debug("RakNet", "using address type Ipv4");
                 var socketDescriptorIpv4 = new SocketDescriptor(serverPort.GetValueOrDefault(), null);
                 socketDescriptorList.Push(socketDescriptorIpv4, null, 0);
             }
@@ -106,7 +106,7 @@ namespace Stormancer.Networking
 #if (!UNITY_ANDROID || UNITY_EDITOR || UNITY_STANDALONE)
             if (Socket.OSSupportsIPv6 && addressType == AddressType.Ipv6)
             {
-                _logger.Debug("using address type Ipv6");
+                _logger.Debug("RakNet", "using address type Ipv6");
                 var socketDescriptorIpv6 = new SocketDescriptor(serverPort.GetValueOrDefault(), null);
 #if (UNITY_IOS && !UNITY_EDITOR && !UNITY_STANDALONE)
 			    socketDescriptorIpv6.socketFamily = 30; // AF_INET6
@@ -116,19 +116,19 @@ namespace Stormancer.Networking
                 socketDescriptorList.Push(socketDescriptorIpv6, null, 0);
             }
 #endif
-            _logger.Debug($"socket descriptor list size : {socketDescriptorList.Size()}");
+            _logger.Debug("RakNet", $"socket descriptor list size : {socketDescriptorList.Size()}");
             var startupResult = server.Startup(maxConnections, socketDescriptorList, 1);
             if (startupResult == StartupResult.RAKNET_ALREADY_STARTED)
             {
-                _logger.Error("raknet server already started. Shuting down actual server and create new one");
+                _logger.Error("RakNet", "raknet server already started. Shuting down actual server and create new one");
                 server.Shutdown(1000);
                 RakPeerInterface.DestroyInstance(server);
                 IsRunning = false;
-                _logger.Info("Stopped raknet server.");
+                _logger.Info("RakNet", "Stopped raknet server.");
 
                 // start new one
                 IsRunning = true;
-                _logger.Info("Starting raknet transport " + _type);
+                _logger.Info("RakNet", "Starting raknet transport " + _type);
                 try
                 {
                     server = RakPeerInterface.GetInstance();
@@ -143,7 +143,7 @@ namespace Stormancer.Networking
 
             if (startupResult != StartupResult.RAKNET_STARTED)
             {
-                _logger.Error("Couldn't start raknet peer :" + startupResult);
+                _logger.Error("RakNet", "Couldn't start raknet peer :" + startupResult);
                 throw new InvalidOperationException("Couldn't start raknet peer :" + startupResult);
             }
 
@@ -151,7 +151,7 @@ namespace Stormancer.Networking
             _socketDescriptorCount = socketDescriptorList.Size();
             _peer = server;
             startupTcs.SetResult(true);
-            _logger.Info("Raknet transport " + _type + " started");
+            _logger.Info("RakNet", "Raknet transport " + _type + " started");
             while (!token.IsCancellationRequested)
             {
                 for (var packet = server.Receive(); packet != null; packet = server.Receive())
@@ -352,7 +352,7 @@ namespace Stormancer.Networking
             server.Shutdown(1000);
             RakPeerInterface.DestroyInstance(server);
             IsRunning = false;
-            _logger.Info("Stopped raknet server.");
+            _logger.Info("RakNet", "Stopped raknet server.");
         }
 
         private bool SendPingImpl(string address)
@@ -401,7 +401,7 @@ namespace Stormancer.Networking
 
         private IConnection OnConnection(RakNet.SystemAddress systemAddress, RakNetGUID guid, ulong peerId, PendingConnection request)
         {
-            _logger.Trace("Connected to endpoint {0}", systemAddress);
+            _logger.Trace("RakNet", "Connected to endpoint {0}", systemAddress);
             
             IConnection connection = CreateNewConnection(guid, peerId, request.Id);
             var metadata = connection.Metadata;
@@ -423,7 +423,7 @@ namespace Stormancer.Networking
 
         private IConnection OnConnection(RakNet.SystemAddress systemAddress, RakNetGUID guid, ulong peerId, string connectionId)
         {
-            _logger.Trace("Connected to endpoint {0}", systemAddress);
+            _logger.Trace("Raknet", "Connected to endpoint {0}", systemAddress);
 
             IConnection connection = CreateNewConnection(guid, peerId, connectionId);
             var ctx = new PeerConnectedContext { Connection = connection };
@@ -529,6 +529,7 @@ namespace Stormancer.Networking
         public async Task<IConnection> Connect(string endpoint, string id, string parentId, CancellationToken ct)
         {
             var tcs = new TaskCompletionSource<IConnection>();
+            ct.Register(() => tcs.TrySetCanceled());
             var shouldStart = _pendingConnections.Count == 0;
             var pendingConnection = new PendingConnection();
             pendingConnection.Endpoint = endpoint;
@@ -541,8 +542,7 @@ namespace Stormancer.Networking
                 StartNextPendingConnections();
             }
 
-            var connection = await pendingConnection.Tcs.Task;
-            return connection;
+            return await pendingConnection.Tcs.Task;
         }
 
         private void StartNextPendingConnections()

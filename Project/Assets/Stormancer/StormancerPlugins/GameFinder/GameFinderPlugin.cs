@@ -1,4 +1,6 @@
 ﻿
+using Stormancer.Diagnostics;
+
 namespace Stormancer.Plugins
 {
     public class GameFinderPlugin : IClientPlugin

@@ -49,7 +49,7 @@ namespace Stormancer.Diagnostics
         /// <param name="category">The category of the message.</param>
         /// <param name="message">Log message</param>
         /// <param name="data">Additionnal data about the log.</param>
-        void Log(LogLevel level, string category, string message, object data);
+        void Log(LogLevel level, string category, string message, object data = null);
     }
 
     /// <summary>

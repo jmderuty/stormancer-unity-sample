@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using Stormancer.Core;
 using UniRx;
+using Stormancer.Diagnostics;
 
 namespace Stormancer.Plugins
 {
@@ -38,12 +39,12 @@ namespace Stormancer.Plugins
             CancellationTokenSource source;
             if(_pendingFindGameRequest.TryGetValue(gameFinder, out source))
             {
-                _logger.Log(Diagnostics.LogLevel.Trace, "GameFinder", $"Cancelling pending find game request for gamefinder {gameFinder}");
+                _logger.Log(LogLevel.Trace, "GameFinder", $"Cancelling pending find game request for gamefinder {gameFinder}");
                 source.Cancel();
             }
             if(source == null)
             {
-                _logger.Log(Diagnostics.LogLevel.Trace, "GameFinder", $"No pending find game request for gamefinder {gameFinder}");
+                _logger.Log(LogLevel.Trace, "GameFinder", $"No pending find game request for gamefinder {gameFinder}");
             }
         }
 

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Stormancer.Core;
+using System.Threading;
 
 namespace Stormancer.Networking
 {
@@ -13,7 +14,7 @@ namespace Stormancer.Networking
     /// </summary>
     public interface IPacketDispatcher
     {
-        void DispatchPacket(Packet packet);
+        void DispatchPacket(Packet packet, SynchronizationContext synchronizationContext = null);
 
         void AddProcessor(IPacketProcessor processor);
     }

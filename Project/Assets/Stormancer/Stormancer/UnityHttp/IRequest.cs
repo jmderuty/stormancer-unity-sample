@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Open Technologies, Inc. All rights reserved. See License.md in the project root for license information.
 
 using Stormancer;
+using Stormancer.Diagnostics;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;

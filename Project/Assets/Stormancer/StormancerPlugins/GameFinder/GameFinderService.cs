@@ -4,6 +4,7 @@ using Stormancer.Core;
 using UniRx;
 using System.Collections.Generic;
 using System.Threading;
+using Stormancer.Diagnostics;
 
 namespace Stormancer.Plugins
 {
@@ -12,15 +13,15 @@ namespace Stormancer.Plugins
     {
         private readonly Scene _scene;
         private CancellationTokenSource _gameFinderCancellationSource;
+        private readonly ILogger _logger;
 
         private GameFinderStatus _currentState = GameFinderStatus.Idle;
-        public GameFinderStatus CurrentState
-        {
+        public GameFinderStatus CurrentState {
             get => _currentState;
             set
             {
                 _currentState = value;
-                OnGameFinderStatusUpdated(_currentState);
+                RaiseGameFinderStatusUpdated(_currentState);
             }
         }
 
@@ -30,56 +31,100 @@ namespace Stormancer.Plugins
         public Action<GameFinderResponse> OnGameFound { get; set; }
         public Action<string> OnFindGameRequestFailed { get; set; }
 
+        private void RaiseGameFound(GameFinderResponse response)
+        {
+            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+                {
+                    try
+                    {
+                        OnGameFound?.Invoke(response);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Log(LogLevel.Error, "gamefinder", $"an exception occurred when executing OnGameFound: {ex.Message}");
+                    }
+                });
+        }
+
+        private void RaiseFindGameRequestFailed(string reason)
+        {
+            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            {
+                try
+                {
+                    OnFindGameRequestFailed?.Invoke(reason);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gamefinder", $"an exception occurred when executing OnGameFinderStatusUpdated: {ex.Message}");
+                }
+            });
+        }
+
+        private void RaiseGameFinderStatusUpdated(GameFinderStatus status)
+        {
+            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            {
+                try
+                {
+                    OnGameFinderStatusUpdated?.Invoke(status);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gamefinder", $"an exception occurred when executing OnGameFinderStatusUpdated: {ex.Message}");
+                }
+            });
+        }
+
         // Gr : nouvelle version.
         public GameFinderService(Scene scene)
         {
             _scene = scene;
+            _logger = _scene.DependencyResolver.Resolve<ILogger>();
         }
 
         public void Initialize()
         {
             var serializer = _scene.DependencyResolver.Resolve<ISerializer>();
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
             _scene.AddRoute("gamefinder.update", (packet) =>
             {
-                MainThread.Post(() =>
+                int gameState = packet.Stream.ReadByte();
+                CurrentState = (GameFinderStatus)gameState;
+                switch (CurrentState)
                 {
-                    int gameState = packet.Stream.ReadByte();
-                    CurrentState = (GameFinderStatus)gameState;
-                    switch (_currentState)
+                    case GameFinderStatus.Success:
                     {
-                        case GameFinderStatus.Success:
-                            {
-                                var dto = serializer.Deserialize<GameFinderResponseDTO>(packet.Stream);
+                        var dto = serializer.Deserialize<GameFinderResponseDTO>(packet.Stream);
 
-                                GameFinderResponse response = new GameFinderResponse();
-                                response.ConnectionToken = dto.GameToken;
-                                response.OptionalParameters = dto.OptionalParameters;
-                                OnGameFound(response);
-                                CurrentState = GameFinderStatus.Idle;
-                            }
-                            break;
-                        case GameFinderStatus.Canceled:
-                            CurrentState = GameFinderStatus.Idle;
-                            break;
-                        case GameFinderStatus.Failed:
-                            {
-                                string reason = "";
-                                // There is not always a reason to a failed GameFinder request
-                                if (packet.Stream.Position < packet.Stream.Length)
-                                {
-                                    reason = serializer.Deserialize<string>(packet.Stream);
-                                }
-                                OnFindGameRequestFailed(reason);
-                                CurrentState = GameFinderStatus.Idle;
-                            }
-                            break;
+                        GameFinderResponse response = new GameFinderResponse();
+                        response.ConnectionToken = dto.GameToken;
+                        response.OptionalParameters = dto.OptionalParameters;
+                        RaiseGameFound(response);
+                        CurrentState = GameFinderStatus.Idle;
                     }
-                });
+                    break;
+                    case GameFinderStatus.Canceled:
+                        CurrentState = GameFinderStatus.Idle;
+                        break;
+                    case GameFinderStatus.Failed:
+                    {
+                        string reason = "";
+                        // There is not always a reason to a failed GameFinder request
+                        if (packet.Stream.Position < packet.Stream.Length)
+                        {
+                            reason = serializer.Deserialize<string>(packet.Stream);
+                        }
+                        RaiseFindGameRequestFailed(reason);
+                        CurrentState = GameFinderStatus.Idle;
+                    }
+                    break;
+                }
             });
 
             _scene.AddRoute("gamefinder.ready.update", (packet) =>
             {
-                MainThread.Post(() =>
+                synchronizationContext.SafePost(() =>
                 {
                     ReadyVerificationRequestDto verificationRequestDto = serializer.Deserialize<ReadyVerificationRequestDto>(packet.Stream);
                     ReadyVerificationRequest readyVerificationRequest = new ReadyVerificationRequest();
@@ -103,7 +148,7 @@ namespace Stormancer.Plugins
 
         private async Task FindGameInternal<T>(string provider, T data)
         {
-            if(CurrentState != GameFinderStatus.Idle)
+            if (CurrentState != GameFinderStatus.Idle)
             {
                 throw new InvalidOperationException("Already searching !");
             }
@@ -113,7 +158,7 @@ namespace Stormancer.Plugins
             try
             {
                 var serializer = _scene.DependencyResolver.Resolve<ISerializer>();
-                await _scene.RpcVoid("gamefinder.find", (stream) => 
+                await _scene.RpcVoid("gamefinder.find", (stream) =>
                 {
                     serializer.Serialize(provider, stream);
                     serializer.Serialize(data, stream);
@@ -122,7 +167,7 @@ namespace Stormancer.Plugins
             catch (Exception ex)
             {
                 _scene.DependencyResolver.Resolve<ILogger>().Log(Diagnostics.LogLevel.Error, "GameFinderService", "An error occurred in FindGame ", ex.Message);
-            	if(CurrentState != GameFinderStatus.Idle)
+                if (CurrentState != GameFinderStatus.Idle)
                 {
                     CurrentState = GameFinderStatus.Idle;
                 }

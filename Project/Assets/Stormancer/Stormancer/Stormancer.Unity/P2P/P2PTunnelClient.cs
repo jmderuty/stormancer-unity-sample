@@ -1,4 +1,5 @@
 ﻿
+using Stormancer.Diagnostics;
 using Stormancer.Networking.Processors;
 using System;
 using System.Net.Sockets;

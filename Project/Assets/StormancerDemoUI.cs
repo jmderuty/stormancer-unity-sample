@@ -99,7 +99,7 @@ public class StormancerDemoUI : MonoBehaviour
         var authenticationProvider = new RandomAuthenticationProvider();
         authenticationProvider.Initialize();
         var config = ClientConfiguration.ForAccount("sample-unity", "sample");
-        config.TaskGetAuthParameters = authenticationProvider.GetAuthArgs();
+        config.TaskGetAuthParameters = authenticationProvider.GetAuthArgs;
         config.ServerEndpoints = new List<string>() { "http://gc3.stormancer.com" };
         config.Plugins.Add(new AuthenticationPlugin());
         config.Plugins.Add(new GameSessionPlugin());
@@ -108,7 +108,7 @@ public class StormancerDemoUI : MonoBehaviour
         config.Plugins.Add(new LeaderboardPlugin());
         // This enable the log of stormancer in unity
         config.Logger = DebugLogger.Instance;
-        ClientFactory.SetConfig(_clientId, () => { return config; });
+        ClientFactory.SetConfigFactory(_clientId, () => { return config; });
     }
 
     private void Update()

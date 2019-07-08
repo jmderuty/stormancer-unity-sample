@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
+using Stormancer.Diagnostics;
 
 namespace Stormancer.Plugins
 {
@@ -46,6 +47,95 @@ namespace Stormancer.Plugins
             }
         }
 
+        private void RaiseTunnelOpened(P2PTunnel tunnel)
+        {
+            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            {
+                try
+                {
+                    OnTunnelOpened?.Invoke(tunnel);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gamefinder", $"an exception occurred when executing OnTunnelOpened: {ex.Message}");
+                }
+            });
+        }
+
+        private void RaiseRoleReceived(string role)
+        {
+            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            {
+                try
+                {
+                    OnRoleReceived?.Invoke(role);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gamefinder", $"an exception occurred when executing OnRoleReceived: {ex.Message}");
+                }
+            });
+        }
+
+        private void RaiseAllPlayerReady()
+        {
+            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            {
+                try
+                {
+                    OnAllPlayerReady?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gamefinder", $"an exception occurred when executing OnAllPlayerReady: {ex.Message}");
+                }
+            });
+        }
+
+        private void RaiseShutdownReceived()
+        {
+            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            {
+                try
+                {
+                    OnShutdownReceived?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gamefinder", $"an exception occurred when executing OnShutdownReceived: {ex.Message}");
+                }
+            });
+        }
+
+        private void RaiseConnectionOpened(IP2PScenePeer p2pScenePeer)
+        {
+            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            {
+                try
+                {
+                    OnConnectionOpened?.Invoke(p2pScenePeer);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gamefinder", $"an exception occurred when executing OnConnectionOpened: {ex.Message}");
+                }
+            });
+        }
+
+        private void RaiseConnectionFailure(string reason)
+        {
+            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            {
+                try
+                {
+                    OnConnectionFailure?.Invoke(reason);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Log(LogLevel.Error, "gamefinder", $"an exception occurred when executing OnConnectionFailure: {ex.Message}");
+                }
+            });
+        }
         public GameSessionService(Scene scene)
         {
             this._scene = scene;
@@ -54,17 +144,15 @@ namespace Stormancer.Plugins
 
         public void Initialize()
         {
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
             _scene.AddRoute("gameSession.shutdown", (packet) =>
             {
-                MainThread.Post(() =>
-                {
-                    OnShutdownReceived?.Invoke();
-                });
+                RaiseShutdownReceived();
             });
 
             _scene.AddRoute<PlayerUpdate>("player.update", update =>
             {
-                MainThread.Post(() =>
+                synchronizationContext.SafePost(() =>
                 {
                     var player = new SessionPlayer(update.UserId, (PlayerStatus)update.Status);
                     _users.AddOrUpdate(update.UserId, player, (_, __) => player);
@@ -74,10 +162,7 @@ namespace Stormancer.Plugins
 
             _scene.AddRoute("players.allReady", packet =>
             {
-                MainThread.Post(() =>
-                {
-                    OnAllPlayerReady?.Invoke();
-                });
+                RaiseAllPlayerReady();
             });
         }
 
@@ -86,47 +171,47 @@ namespace Stormancer.Plugins
             cancellationToken = LinkTokenToDisconnection(cancellationToken);
             if (_scene == null)
             {
-                _logger.Log(Diagnostics.LogLevel.Error, "GameSessionService.InitializeTunnel", "scene deleted");
+                _logger.Log(LogLevel.Error, "GameSessionService.InitializeTunnel", "scene deleted");
                 throw new InvalidOperationException("scene deleted");
             }
 
-            _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "received p2p token");
+            _logger.Log(LogLevel.Trace, "GameSessionService.InitializeTunnel", "received p2p token");
             if (_receivedP2PToken)
             {
-                _logger.Log(Diagnostics.LogLevel.Error, "GameSessionService.InitializeTunnel", "Already received P2P token");
+                _logger.Log(LogLevel.Error, "GameSessionService.InitializeTunnel", "Already received P2P token");
                 throw new InvalidOperationException("Already received P2P token");
             }
             _receivedP2PToken = true;
             if(p2pToken == null)
             {
-                _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "received empty p2p token : I'm the host."); 
-                OnRoleReceived?.Invoke("HOST");
+                _logger.Log(LogLevel.Trace, "GameSessionService.InitializeTunnel", "received empty p2p token : I'm the host."); 
+                RaiseRoleReceived("HOST");
                 if(useTunnel)
                 {
                     _tunnel = _scene.RegisterP2PServer(GAMESESSION_P2P_SERVER_ID);
-                    _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "Tunnel established on host");
+                    _logger.Log(LogLevel.Trace, "GameSessionService.InitializeTunnel", "Tunnel established on host");
                 }
             }
             else
             {
-                _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "received empty p2p token : I'm a client.");
+                _logger.Log(LogLevel.Trace, "GameSessionService.InitializeTunnel", "received empty p2p token : I'm a client.");
                 try
                 {
                     var p2pPeer = await _scene.OpenP2PConnection(p2pToken, cancellationToken);
-                    OnRoleReceived?.Invoke("CLIENT");
-                    OnConnectionOpened?.Invoke(p2pPeer);
+                    RaiseRoleReceived("CLIENT");
+                    RaiseConnectionOpened(p2pPeer);
                     if (useTunnel)
                     {
                         _tunnel = await p2pPeer.OpenP2PTunnel(GAMESESSION_P2P_SERVER_ID, cancellationToken);
-                        _logger.Log(Diagnostics.LogLevel.Trace, "GameSessionService.InitializeTunnel", "Tunnel established on client");
+                        _logger.Log(LogLevel.Trace, "GameSessionService.InitializeTunnel", "Tunnel established on client");
 
-                        OnTunnelOpened?.Invoke(_tunnel);
+                        RaiseTunnelOpened(_tunnel);
                     }
                 }
                 catch (Exception ex) when (!(ex is OperationCanceledException))
                 {
-                    OnConnectionFailure?.Invoke(ex.Message);
-                    _logger.Log(Diagnostics.LogLevel.Error, "GameSessionService", "An error occurred in InitializeTunnel : "+ex.Message, ex);
+                    RaiseConnectionFailure(ex.Message);
+                    _logger.Log(LogLevel.Error, "GameSessionService", "An error occurred in InitializeTunnel : "+ex.Message, ex);
                     throw;
                 }
             }

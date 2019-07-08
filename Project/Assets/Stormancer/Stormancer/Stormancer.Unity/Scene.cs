@@ -124,6 +124,7 @@ namespace Stormancer
 
         public void Initialize()
         {
+
             Action<ConnectionStateCtx> onNext = (state) =>
             {
                 _connectionState = state;
@@ -136,11 +137,12 @@ namespace Stormancer
             SceneConnectionStateObservable.Subscribe(onNext, onError);
             _peer.GetConnectionStateChangedObservable().Subscribe((state) =>
             {
+                var synchronizationContext = DependencyResolver.Resolve<SynchronizationContext>();
                 var sceneState = ConnectionState;
                 // We check the connection is disconnecting, and the scene is not already disconnecting or disconnected
                 if (state.State == Core.ConnectionState.Disconnecting && sceneState.State != Core.ConnectionState.Disconnecting && sceneState.State != Core.ConnectionState.Disconnected)
                 {
-                    MainThread.Post(() =>
+                    synchronizationContext.SafePost(() =>
                     {
                         SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnecting, state.Reason));
                     });
@@ -151,12 +153,12 @@ namespace Stormancer
                     // We ensure the scene is disconnecting
                     if (sceneState.State != Core.ConnectionState.Disconnecting)
                     {
-                        MainThread.Post(() =>
+                        synchronizationContext.SafePost(() =>
                         {
                             SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnecting, state.Reason));
                         });
                     }
-                    MainThread.Post(() =>
+                    synchronizationContext.SafePost(() =>
                     {
                         SetConnectionState(new ConnectionStateCtx(Core.ConnectionState.Disconnected, state.Reason));
                     });
@@ -235,7 +237,7 @@ namespace Stormancer
 
             if (_connectionState.State != Core.ConnectionState.Disconnected)
             {
-                DependencyResolver.Resolve<ILogger>().Error("AddRoute failed: Tried to create a route once connected");
+                DependencyResolver.Resolve<ILogger>().Error("Scene", "AddRoute failed: Tried to create a route once connected");
                 throw new InvalidOperationException("You cannot register handles once the scene is connected.");
             }
 
@@ -302,17 +304,17 @@ namespace Stormancer
         {
             if (_client == null)
             {
-                _logger.Error("SendPacket failed: Client deleted");
+                _logger.Error("Scene", "SendPacket failed: Client deleted");
                 throw new InvalidOperationException("Client deleted");
             }
             if (_connectionState.State != Core.ConnectionState.Connected)
             {
-                _logger.Error("SendPacket failed: Tried to send message without being connected");
+                _logger.Error("Scene", "SendPacket failed: Tried to send message without being connected");
                 throw new InvalidOperationException("The scene must be connected to perform this operation.");
             }
             if (route.Length == 0)
             {
-                _logger.Error("SendPacket failed: Tried to send a message on an invalid route");
+                _logger.Error("Scene", "SendPacket failed: Tried to send a message on an invalid route");
                 throw new ArgumentNullException("no route selected");
             }
             if (filter.Type == PeerFilterType.MatchSceneHost)
@@ -451,7 +453,7 @@ namespace Stormancer
                 throw new InvalidOperationException("Client is Invalid");
             }
 
-            DependencyResolver.Resolve<ILogger>().Trace("Client disconnected from the scene "+Id);
+            DependencyResolver.Resolve<ILogger>().Trace("Scene", "Client disconnected from the scene "+Id);
 
         }
 

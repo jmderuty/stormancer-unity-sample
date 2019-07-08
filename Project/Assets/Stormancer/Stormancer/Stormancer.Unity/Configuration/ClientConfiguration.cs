@@ -1,9 +1,11 @@
 ﻿using Stormancer.Client45.Infrastructure;
+using Stormancer.Diagnostics;
 using Stormancer.Networking;
 using Stormancer.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer
@@ -83,7 +85,7 @@ namespace Stormancer
 
         public TimeSpan DefaultTimeout { get; } = TimeSpan.FromMilliseconds(10000);
 
-        public Task<AuthParameters> TaskGetAuthParameters { get; set; }
+        public Func<Task<AuthParameters>> TaskGetAuthParameters { get; set; }
 
         public EndpointSelectionMode EndpointSelectionMode { get; set; } = EndpointSelectionMode.FALLBACK;
 
@@ -151,15 +153,7 @@ namespace Stormancer
 #endif
             AsynchrounousDispatch = true;
             PingInterval = 5000;
-
-            try
-            {
-                MainThread.Initialize();
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw new InvalidOperationException("You must create a new ClientConfiguration in the Unity Main Thread.", ex);
-            }
+            _synchronizationContext = SynchronizationContext.Current;
         }
 
         private RakNetTransport DefaultTransportFactory(IDependencyResolver DependencyResolver)
@@ -251,6 +245,22 @@ namespace Stormancer
 		/// <remarks>
 		/// This will have no effect on P2P hosts, as multiple clients can be connected to them.
 		/// </remarks>
-		public ushort TunnelPort = 0;
+		public ushort TunnelPort { get; set; } = 0;
+
+        /// <summary>
+        /// The SynchronizationContext on which to dispatch events. If not set, will be set to the one captured by <see cref="ClientFactory"/>.
+        /// </summary>
+        private SynchronizationContext _synchronizationContext;
+        public SynchronizationContext SynchronizationContext 
+        {
+            get { return _synchronizationContext; }
+            set
+            {
+                _synchronizationContext = value;
+                IsSynchronizationContextSet = true;
+            }
+        }
+        
+        public bool IsSynchronizationContextSet { get; private set; }
     }
 }

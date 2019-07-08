@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Networking
@@ -59,7 +60,7 @@ namespace Stormancer.Networking
             }
         }
 
-        public void DispatchPacket(Packet packet)
+        public void DispatchPacket(Packet packet, SynchronizationContext context)
         {
             if (this._asyncDispatch.Value)
             {
@@ -71,7 +72,7 @@ namespace Stormancer.Networking
                     }
                     catch(Exception ex)
                     {
-                        MainThread.Post(() => UnityEngine.Debug.LogError(ex));
+                        context.SafePost(() => UnityEngine.Debug.LogError(ex));
                     }
                 });
             }
@@ -83,7 +84,7 @@ namespace Stormancer.Networking
                 }
                 catch (Exception ex)
                 {
-                    MainThread.Post(() => UnityEngine.Debug.LogError(ex));
+                    context.SafePost(() => UnityEngine.Debug.LogError(ex));
                 }
             }
         }

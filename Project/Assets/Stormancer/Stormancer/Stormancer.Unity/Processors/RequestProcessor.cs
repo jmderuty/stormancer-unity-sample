@@ -142,7 +142,7 @@ namespace Stormancer.Networking.Processors
                 }
                 else
                 {
-                    _logger.Trace("Unknown request id.");
+                    _logger.Trace("RequestProcessor", "Unknown request id.");
                 }
 
                 return Task.FromResult(true);
@@ -168,7 +168,7 @@ namespace Stormancer.Networking.Processors
                     }
                     else
                     {
-                        _logger.Trace("Unknown request id.");
+                        _logger.Trace("RequestProcessor", "Unknown request id.");
                     }
                 }
 
@@ -214,7 +214,7 @@ namespace Stormancer.Networking.Processors
                 }
                 else
                 {
-                    _logger.Trace("Unknown request id.");
+                    _logger.Trace("RequestProcessor", "Unknown request id.");
                 }
 
                 return Task.FromResult(true);
@@ -342,7 +342,7 @@ namespace Stormancer.Networking.Processors
             {
                 return request;
             }
-            _logger.Error("Unable to create a new request: Too many pending requests.");
+            _logger.Error("RequestProcessor", "Unable to create a new request: Too many pending requests.");
             throw new InvalidOperationException("Unable to create new request: Too many pending requests.");
         }
 

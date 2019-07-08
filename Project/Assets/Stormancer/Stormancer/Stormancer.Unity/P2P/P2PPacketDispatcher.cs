@@ -1,4 +1,5 @@
-﻿using Stormancer.Networking;
+﻿using Stormancer.Diagnostics;
+using Stormancer.Networking;
 using System.Threading.Tasks;
 
 namespace Stormancer

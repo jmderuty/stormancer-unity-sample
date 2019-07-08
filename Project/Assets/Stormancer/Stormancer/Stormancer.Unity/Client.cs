@@ -94,6 +94,7 @@ namespace Stormancer
             this._scheduler = configuration.Scheduler;
             DependencyResolver = new StormancerResolver();
             DependencyResolver.RegisterDependency<ISerializer>(_systemSerializer);
+            DependencyResolver.RegisterDependency<SynchronizationContext>(configuration.SynchronizationContext);
             this.DependencyResolver.Register<ITransport>(configuration.TransportFactory, true);
             this._accountId = configuration.Account;
             this._applicationName = configuration.Application;
@@ -180,7 +181,7 @@ namespace Stormancer
         {
             if (!_initialized)
             {
-                this._logger.Trace("creating client");
+                this._logger.Trace("Client", "creating client");
                 _initialized = true;
 
 
@@ -268,7 +269,7 @@ namespace Stormancer
 
         private void Transport_PacketReceived(Stormancer.Core.Packet obj)
         {
-            _dispatcher.DispatchPacket(obj);
+            _dispatcher.DispatchPacket(obj, _config.SynchronizationContext);
         }
 
 
@@ -425,13 +426,13 @@ namespace Stormancer
             {
                 if (result.SelectedSerializer == null)
                 {
-                    this._logger.Error("No serializer selected");
+                    this._logger.Error("Client", "No serializer selected");
                     throw new InvalidOperationException("No serializer selected.");
                 }
                 _serverConnection.DependencyResolver.RegisterDependency(_serializers[result.SelectedSerializer]);
             }
             _serverConnection.Metadata["serializer"] = result.SelectedSerializer;
-            this._logger.Info("Serializer selected: " + result.SelectedSerializer);
+            this._logger.Info("Client", "Serializer selected: " + result.SelectedSerializer);
 
             await UpdateServerMetadata();
             

@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using Stormancer.Core;
+using Stormancer.Diagnostics;
 
 namespace Stormancer.Plugins
 {
@@ -32,9 +33,9 @@ namespace Stormancer.Plugins
             };
 
             ctx.SceneCreated += scene =>
-           {
-               _clientVM.scenes.TryAdd(scene.Id, new StormancerSceneViewModel(scene));
-           };
+            {
+                _clientVM.scenes.TryAdd(scene.Id, new StormancerSceneViewModel(scene));
+            };
 
             ctx.SceneConnected += scene =>
             {
@@ -127,7 +128,7 @@ namespace Stormancer.Plugins
 
 
             #region ILogger implementation
-            public void Log(Stormancer.Diagnostics.LogLevel logLevel, string category, string message, object context = null)
+            public void Log(LogLevel logLevel, string category, string message, object context = null)
             {
                 var temp = new StormancerEditorLog();
                 temp.logLevel = logLevel.ToString();
@@ -139,82 +140,6 @@ namespace Stormancer.Plugins
                         s.log.log.Enqueue(temp);
                 }
                 _innerLogger.Log(logLevel, category, message, context);
-            }
-
-            public void Trace(string message, params object[] p)
-            {
-                var temp = new StormancerEditorLog();
-                temp.logLevel = "trace";
-                try
-                {
-                    temp.message = string.Format(message, p);
-                }
-                catch (Exception ex)
-                {
-                    Error(ex);
-                }
-                _clientVM.log.log.Enqueue(temp);
-                _innerLogger.Trace(message, p);
-            }
-
-            public void Debug(string message, params object[] p)
-            {
-                var temp = new StormancerEditorLog();
-                temp.logLevel = "Debug";
-                try
-                {
-                    temp.message = string.Format(message, p);
-                }
-                catch (Exception ex)
-                {
-                    Error(ex);
-                }
-                _clientVM.log.log.Enqueue(temp);
-                _innerLogger.Debug("InterceptorLogger", message, p);
-
-            }
-
-            public void Error(Exception ex)
-            {
-                var temp = new StormancerEditorLog();
-                temp.logLevel = "Error";
-                temp.message = ex.Message;
-                _clientVM.log.log.Enqueue(temp);
-                _innerLogger.Error("InterceptorLogger", ex);
-
-            }
-
-            public void Error(string message, params object[] p)
-            {
-                var temp = new StormancerEditorLog();
-                temp.logLevel = "Error";
-                try
-                {
-                    temp.message = string.Format(message, p);
-                }
-                catch (Exception ex)
-                {
-                    Error(ex);
-                }
-                _clientVM.log.log.Enqueue(temp);
-                _innerLogger.Error(message, p);
-
-            }
-            public void Info(string message, params object[] p)
-            {
-                var temp = new StormancerEditorLog();
-                temp.logLevel = "Info";
-                try
-                {
-                    temp.message = string.Format(message, p);
-                }
-                catch (Exception ex)
-                {
-                    Error(ex);
-                }
-                _clientVM.log.log.Enqueue(temp);
-                _innerLogger.Info(message, p);
-
             }
             #endregion
         }

@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Stormancer.Processors
@@ -78,8 +79,9 @@ namespace Stormancer.Processors
             }
             else
             {
+                var synchronizationContext = scene.DependencyResolver.Resolve<SynchronizationContext>();
                 packet.Metadata["scene"] = scene;
-                MainThread.Post(() =>
+                synchronizationContext.SafePost(() =>
                 {
                     scene.HandleMessage(packet);
                 });

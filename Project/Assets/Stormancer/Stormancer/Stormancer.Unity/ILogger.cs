@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Stormancer.Diagnostics;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,27 +7,6 @@ using System.Threading.Tasks;
 
 namespace Stormancer
 {
-    //public enum LogLevel
-    //{
-    //    Fatal = 0,
-    //    Error = 1,
-    //    Warn = 2,
-    //    Info = 3,
-    //    Debug = 4,
-    //    Trace = 5
-    //}
-    public interface ILogger
-    {
-		void Log (Stormancer.Diagnostics.LogLevel logLevel, string category, string message, object context = null);
-        void Trace(string message, params object[] p);
-
-        void Debug(string message, params object[] p);
-        void Error(Exception ex);
-
-        void Error(string format, params object[] p);
-        void Info(string format, params object[] p);
-
-    }
 
     public class NullLogger : ILogger
     {
@@ -71,31 +51,29 @@ namespace Stormancer
 
         public static readonly DebugLogger Instance = new DebugLogger();
 
-        public void Log(Stormancer.Diagnostics.LogLevel logLevel, string category, string message, object context = null) {
-            MainThread.Post(() => {
-                switch(logLevel) {
-                    case Diagnostics.LogLevel.Fatal:
-                    case Diagnostics.LogLevel.Error:
-                        UnityEngine.Debug.LogError(logLevel.ToString() + ": " + category + ": " + message + ": " + context?.ToString());
-                        break;
-                    case Diagnostics.LogLevel.Warn:
-                        UnityEngine.Debug.LogWarning(logLevel.ToString() + ": " + category + ": " + message + ": " + context?.ToString());
-                        break;
-                    default:
-                        UnityEngine.Debug.Log(logLevel.ToString() + ": " + category + ": " + message + ": " + context?.ToString());
-                        break;
-                }
-            });
+        public void Log(LogLevel logLevel, string category, string message, object context = null) {
+            switch(logLevel) {
+                case LogLevel.Fatal:
+                case LogLevel.Error:
+                    UnityEngine.Debug.LogError(logLevel.ToString() + ": " + category + ": " + message + ": " + context?.ToString());
+                    break;
+                case LogLevel.Warn:
+                    UnityEngine.Debug.LogWarning(logLevel.ToString() + ": " + category + ": " + message + ": " + context?.ToString());
+                    break;
+                default:
+                    UnityEngine.Debug.Log(logLevel.ToString() + ": " + category + ": " + message + ": " + context?.ToString());
+                    break;
+            }
         }
 
         public void Trace(string message, params object[] p)
         {
-            Log(Stormancer.Diagnostics.LogLevel.Trace, "client", string.Format(message, p));
+            Log(LogLevel.Trace, "client", string.Format(message, p));
         }
 
         public void Debug(string message, params object[] p)
         {
-			Log(Stormancer.Diagnostics.LogLevel.Debug, "client", string.Format(message, p));
+			Log(LogLevel.Debug, "client", string.Format(message, p));
         }
 
         public void Error(Exception ex)
@@ -105,12 +83,12 @@ namespace Stormancer
 
         public void Error(string format, params object[] p)
         {
-			Log(Stormancer.Diagnostics.LogLevel.Error, "client", string.Format(format, p));
+			Log(LogLevel.Error, "client", string.Format(format, p));
         }
 
         public void Info(string format, params object[] p)
         {
-			Log(Stormancer.Diagnostics.LogLevel.Info, "client", string.Format(format, p));
+			Log(LogLevel.Info, "client", string.Format(format, p));
         }
     }
 

@@ -1,4 +1,6 @@
-﻿namespace Stormancer.Plugins
+﻿using Stormancer.Diagnostics;
+
+namespace Stormancer.Plugins
 {
     public class PartyPlugin : IClientPlugin
     {

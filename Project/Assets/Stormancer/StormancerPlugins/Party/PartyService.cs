@@ -3,6 +3,7 @@ using UniRx;
 using System;
 using System.Threading.Tasks;
 using Stormancer.Diagnostics;
+using System.Threading;
 
 namespace Stormancer.Plugins
 {
@@ -40,9 +41,10 @@ namespace Stormancer.Plugins
 
         public void Initialize()
         {
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
             _scene.AddRoute("party.updatesettings", packet =>
             {
-                MainThread.Post(async () =>
+                synchronizationContext.SafePost(async () =>
                 {
                     var updatedSettings = packet.ReadObject<PartySettingsDto>();
                     SetNewLocalSettings(updatedSettings);
@@ -60,7 +62,7 @@ namespace Stormancer.Plugins
 
             _scene.AddRoute("party.updateuserData", packet =>
             {
-                MainThread.Post(() =>
+                synchronizationContext.SafePost(() =>
                 {
                     var updatedUserData = packet.ReadObject<PartyUserData>();
                     OnPartyUserDataUpdated?.Invoke(updatedUserData);
@@ -69,7 +71,7 @@ namespace Stormancer.Plugins
 
             _scene.AddRoute("party.updatepartymembers", packet =>
             {
-                MainThread.Post(() =>
+                synchronizationContext.SafePost(() =>
                 {
                     var members = packet.ReadObject<PartyUserDto[]>();
                     _members = members;
@@ -79,7 +81,7 @@ namespace Stormancer.Plugins
 
             _scene.AddRoute("party.kicked", packet =>
             {
-                MainThread.Post(() =>
+                synchronizationContext.SafePost(() =>
                 {
                     OnPartyKicked?.Invoke();
                 });

@@ -12,6 +12,7 @@ namespace Stormancer.Plugins
             
         }
 
+        // TODO : random == Steam ?
         public Task<AuthParameters> GetAuthArgs()
         {
             AuthParameters auth = new AuthParameters();
