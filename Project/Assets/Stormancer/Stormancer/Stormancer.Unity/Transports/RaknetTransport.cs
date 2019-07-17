@@ -42,7 +42,7 @@ namespace Stormancer.Networking
         private IDependencyResolver _dependencyResolver;
 
         private readonly object _connectionTaskSyncRoot = new object();
-        private Task<IConnection> _connectionTask = TaskHelper.FromResult(default(IConnection));
+        private Task<IConnection> _connectionTask = Task.FromResult(default(IConnection));
         private uint _socketDescriptorCount = 0;
 
         public RakNetTransport(IDependencyResolver resolver)
@@ -51,6 +51,7 @@ namespace Stormancer.Networking
             _logger = resolver.Resolve<ILogger>();
             _connectionHandler = resolver.Resolve<IConnectionHandler>();
         }
+
         public Task Start(string type, IConnectionManager handler, CancellationToken token, ushort? serverPort, ushort maxConnections, AddressType addressType = AddressType.Undefined)
         {
             _logger.Log(LogLevel.Trace, "RakNetTransport", "Starting RakNet transport...");

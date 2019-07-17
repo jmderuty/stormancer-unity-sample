@@ -8,7 +8,7 @@ namespace Stormancer.Common.Helpers
 {
     public class AsyncSemaphore
     {
-        private readonly static Task s_completed = TaskHelper.FromResult(true);
+        private readonly static Task s_completed = Task.CompletedTask;
         private readonly Queue<TaskCompletionSource<bool>> m_waiters = new Queue<TaskCompletionSource<bool>>();
         private int m_currentCount;
 

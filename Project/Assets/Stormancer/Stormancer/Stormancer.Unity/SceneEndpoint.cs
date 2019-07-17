@@ -18,18 +18,18 @@ namespace Stormancer
     public class GetConnectionTokenResponse
     {
         public string Token { get; set; }
-        public Dictionary<string, string[]> Endpoints { get; set; }
-        public EncryptionConfiguration Encryption { get; set; }
+        public Dictionary<string, List<string>> Endpoints { get; set; } = new Dictionary<string, List<string>>();
+        public EncryptionConfiguration Encryption { get; set; } = new EncryptionConfiguration();
     }
 
     internal class SceneEndpoint
     {
-        public ConnectionData TokenData { get; set; }
+        public ConnectionData TokenData { get; set; } = new ConnectionData();
 
         public string Token { get; set; }
 
         public int Version { get; set; } = 1;
 
-        public GetConnectionTokenResponse TokenResponse {get;set;}
+        public GetConnectionTokenResponse TokenResponse { get; set; } = new GetConnectionTokenResponse();
     }
 }

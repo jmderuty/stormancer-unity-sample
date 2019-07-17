@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using UniRx;
 using System.Threading.Tasks;
 using System.Threading;
 using Stormancer.Client45.Infrastructure;
@@ -15,6 +14,8 @@ using Stormancer.Diagnostics;
 using Stormancer.Processors;
 using Stormancer.Plugins;
 using System.Text;
+using Stormancer.Infrastructure;
+using UniRx;
 
 namespace Stormancer
 {
@@ -43,7 +44,7 @@ namespace Stormancer
 
         private IPacketDispatcher _dispatcher;
 
-        private bool _initialized;
+        private readonly Task _initializationTask = null;
 
         private readonly ISerializer _systemSerializer;
 
@@ -78,14 +79,15 @@ namespace Stormancer
         {
             get => _logger;
         }
-        
+
         /// <summary>
         /// Creates a Stormancer client instance.
         /// </summary>
         /// <param name="configuration">A configuration instance containing options for the client.</param>
         public Client(ClientConfiguration configuration)
         {
-            _config = configuration;
+            _config = configuration ?? throw new ArgumentNullException("configuration", "A stormancer client confirguration should not be null");
+
             _serverTimeout = _config.DefaultTimeout;
             _systemSerializer = configuration.Serializers.First(s => s.Name == MsgPackMapSerializer.NAME);
             _cts = new CancellationTokenSource();
@@ -129,24 +131,21 @@ namespace Stormancer
             this._metadata.Add("platform", "Unity");
             this._metadata.Add("protocol", "2");
 
-            var authenticationService = DependencyResolver.Resolve<AuthenticationService>();
-            if (authenticationService != null)
+            async Task Initialize()
             {
-                authenticationService.OnGetAuthParameters = configuration.TaskGetAuthParameters;
-            }
-        }
+                this._logger.Trace("Client", "creating client");
 
-        public static Client Create(ClientConfiguration config)
-        {
-            if(config == null)
-            {
-                return null;
-            }
-            var client = new Client(config);
-            client.Initialize();
-            return client;
-        }
+                _transport.PacketReceived += Transport_PacketReceived;
+                _logger.Log(Diagnostics.LogLevel.Trace, "Client", "Starting transport", $"port :{_config.ClientSDKPort}; maxPeers: {_maxPeers + 1}");
+                _connections = DependencyResolver.Resolve<IConnectionManager>();
+                await _transport.Start("client", _connections, _cts.Token, _config.ClientSDKPort, (ushort)(_maxPeers + 1));
 
+                this._watch.Start();
+
+            }
+
+            _initializationTask = Initialize();
+        }
 
         private Stopwatch _watch = new Stopwatch();
 
@@ -175,24 +174,6 @@ namespace Stormancer
         private long _offset;
 
         private IConnectionManager _connections;
-
-
-        private void Initialize()
-        {
-            if (!_initialized)
-            {
-                this._logger.Trace("Client", "creating client");
-                _initialized = true;
-
-
-                _transport.PacketReceived += Transport_PacketReceived;
-                _logger.Log(Diagnostics.LogLevel.Trace, "Client", "Starting transport", $"port :{_config.ClientSDKPort}; maxPeers: {_maxPeers + 1}");
-                _connections = DependencyResolver.Resolve<IConnectionManager>();
-                _transport.Start("client", _connections, _cts.Token, _config.ClientSDKPort, (ushort)(_maxPeers + 1));
-
-                this._watch.Start();
-            }
-        }
 
         private void ConfigureContainer()
         {
@@ -291,7 +272,7 @@ namespace Stormancer
             }
             SceneAddress sceneAddress = await ParseSceneUrl(sceneId, cancellationToken);
             var uSceneId = sceneAddress.toUri();
-            Initialize();
+            await _initializationTask;
             _logger.Log(Diagnostics.LogLevel.Trace, "Client", "Get public scene", uSceneId);
 
             ClientScene container;
@@ -503,7 +484,7 @@ namespace Stormancer
         /// <returns>A task returning the scene object on completion.</returns>
         public async Task<Scene> GetPrivateScene(string sceneToken, CancellationToken cancellationToken = default(CancellationToken))
         {
-            Initialize();
+            await _initializationTask;
             _logger.Log(Diagnostics.LogLevel.Trace, "Client", "Get private scene");
             if(sceneToken.Length == 0)
             {
@@ -695,7 +676,6 @@ namespace Stormancer
             var sceneHandle = scene.Host.Handle;
 
             _scenes.TryRemove(sceneId, out  _);
-            UnityEngine.Debug.Log("Client disconnecting");
             scene.SetConnectionState(new ConnectionStateCtx(ConnectionState.Disconnecting, reason));
 
             var sceneDispatcher = DependencyResolver.Resolve<SceneDispatcher>();
@@ -765,11 +745,13 @@ namespace Stormancer
                 try
                 {
                     var transport = DependencyResolver.Resolve<ITransport>();
-                    string endpoint;
-                    if(!sceneEndpoint.TokenData.Endpoints.TryGetValue(transport.Name, out endpoint))
+                    List<string> endpoints;
+                    if(!sceneEndpoint.TokenResponse.Endpoints.TryGetValue(transport.Name, out endpoints))
                     {
                         throw new IndexOutOfRangeException($"No transfport of type {transport.Name} available on this server");
                     }
+                    var random = new Random();
+                    var endpoint = endpoints[random.Next(endpoints.Count)];
                     _logger.Log(Diagnostics.LogLevel.Trace, "Client", "Connecting transport to server", endpoint);
                     var connection = await transport.Connect(endpoint, id, "", ct);
                     connection.Metadata = _metadata;

@@ -5,14 +5,13 @@ using System;
 
 namespace Stormancer.Plugins
 {
-    class RandomAuthenticationProvider : IAuthenticationProvider
+    public class SteamMockupAuthenticationProvider : IAuthenticationProvider
     {
         public void Initialize()
         {
             
         }
 
-        // TODO : random == Steam ?
         public Task<AuthParameters> GetAuthArgs()
         {
             AuthParameters auth = new AuthParameters();

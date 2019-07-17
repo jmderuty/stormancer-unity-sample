@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Runtime.Serialization;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using Stormancer.Infrastructure;
 
 namespace Stormancer.Client45.Infrastructure
 {
@@ -26,7 +27,7 @@ namespace Stormancer.Client45.Infrastructure
 
         public TokenHandler(ClientConfiguration config)
         {
-            _tokenSerializer = config.Serializers.First(s => s.Name == MsgPackSerializer.NAME);
+            _tokenSerializer = config.Serializers.First(s => s.Name == MsgPackSerializer.Instance.Name);
         }
 
         public SceneEndpoint DecodeToken(string token)
@@ -52,12 +53,15 @@ namespace Stormancer.Client45.Infrastructure
             sceneEndpoint.TokenResponse.Encryption.Mode = jsonObject["encryption"]["mode"].ToString();
             sceneEndpoint.TokenResponse.Encryption.Token = jsonObject["encryption"]["token"].ToString();
 
-            foreach (JArray transport in jsonObject["endpoints"].AsEnumerable())
+            var endpoints = sceneEndpoint.TokenResponse.Endpoints;
+            foreach (JProperty transport in jsonObject["endpoints"])
             {
-                for(int i = 0; i< transport.Count; )
+                if (!endpoints.ContainsKey(transport.Name))
                 {
-                    sceneEndpoint.TokenResponse.Endpoints[transport.First.ToString()].Append(transport.Last.ToString());
+                    endpoints.Add(transport.Name, new List<string>());
                 }
+                sceneEndpoint.TokenResponse.Endpoints[transport.Name].AddRange(transport.Value.AsEnumerable().Select(element => element.ToString()));
+               
             }
             sceneEndpoint.TokenData = DecodeToken(sceneEndpoint.Token).TokenData;
             sceneEndpoint.Version = sceneEndpoint.TokenData.Version;

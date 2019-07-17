@@ -124,7 +124,6 @@ namespace Stormancer
 
         public void Initialize()
         {
-
             Action<ConnectionStateCtx> onNext = (state) =>
             {
                 _connectionState = state;

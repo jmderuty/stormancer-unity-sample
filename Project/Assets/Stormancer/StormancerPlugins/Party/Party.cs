@@ -13,7 +13,6 @@ namespace Stormancer.Plugins
         private ILogger _logger;
         private GameFinder _gameFinder;
         private ISerializer _serializer;
-        private string _uniqueOnlinePartyName;
         private Task<PartyContainer> _party;
 
         public PartyInvitations Invitations => _invitations;
@@ -216,7 +215,7 @@ namespace Stormancer.Plugins
             {
                 OnPartyJoined?.Invoke();
             };
-            partyService.OnPartyKicked += async () =>
+            partyService.OnPartyKicked += () =>
             {
                 if (_party != null)
                 {

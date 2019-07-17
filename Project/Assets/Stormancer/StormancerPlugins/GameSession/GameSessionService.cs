@@ -49,7 +49,8 @@ namespace Stormancer.Plugins
 
         private void RaiseTunnelOpened(P2PTunnel tunnel)
         {
-            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
+            synchronizationContext.SafePost(() =>
             {
                 try
                 {
@@ -64,7 +65,8 @@ namespace Stormancer.Plugins
 
         private void RaiseRoleReceived(string role)
         {
-            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
+            synchronizationContext.SafePost(() =>
             {
                 try
                 {
@@ -79,7 +81,8 @@ namespace Stormancer.Plugins
 
         private void RaiseAllPlayerReady()
         {
-            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
+            synchronizationContext.SafePost(() =>
             {
                 try
                 {
@@ -94,7 +97,8 @@ namespace Stormancer.Plugins
 
         private void RaiseShutdownReceived()
         {
-            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
+            synchronizationContext.SafePost(() =>
             {
                 try
                 {
@@ -109,7 +113,8 @@ namespace Stormancer.Plugins
 
         private void RaiseConnectionOpened(IP2PScenePeer p2pScenePeer)
         {
-            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
+            synchronizationContext.SafePost(() =>
             {
                 try
                 {
@@ -124,7 +129,8 @@ namespace Stormancer.Plugins
 
         private void RaiseConnectionFailure(string reason)
         {
-            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
+            synchronizationContext.SafePost(() =>
             {
                 try
                 {

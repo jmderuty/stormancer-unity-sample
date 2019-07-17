@@ -85,6 +85,8 @@ public class StormancerDemoUI : MonoBehaviour
     private NetworkClient _netClient;
     private short _unityMessageId = 1000;
     private int _clientId;
+    private Func<Task<AuthParameters>> _getAuthParam;
+
 
     public void Awake()
     {
@@ -96,11 +98,11 @@ public class StormancerDemoUI : MonoBehaviour
     private void InitializeStormancerClient()
     {
 #error this step is mendatory for you to configure, you can change the Authentication provider, the configuration account and the plugin used
-        var authenticationProvider = new RandomAuthenticationProvider();
+        var authenticationProvider = new SteamMockupAuthenticationProvider();
         authenticationProvider.Initialize();
-        var config = ClientConfiguration.ForAccount("sample-unity", "sample");
-        config.TaskGetAuthParameters = authenticationProvider.GetAuthArgs;
-        config.ServerEndpoints = new List<string>() { "http://gc3.stormancer.com" };
+        var config = ClientConfiguration.Create("http://gc3.stormancer.com", "sample-unity", "sample");
+        _getAuthParam = authenticationProvider.GetAuthArgs;
+        config.TaskGetAuthParameters = _getAuthParam;
         config.Plugins.Add(new AuthenticationPlugin());
         config.Plugins.Add(new GameSessionPlugin());
         config.Plugins.Add(new GameFinderPlugin());
@@ -134,6 +136,7 @@ public class StormancerDemoUI : MonoBehaviour
         {
             var client = ClientFactory.GetClient(_clientId);
             var auth = client.DependencyResolver.Resolve<AuthenticationService>();
+            auth.OnGetAuthParameters = _getAuthParam;
             auth.OnGameConnectionStateChanged += CheckConnectionState;
             await auth.Login();
             // this is useful to initialize Party (especially to set the operation handler to party.invite, that allows us to receive party invitations)

@@ -48,9 +48,8 @@ namespace Stormancer
         public async Task<Scene> Connect()
         {
             ClientConfiguration config;
-            config = ClientConfiguration.ForAccount(AccountId, Application);
+            config = ClientConfiguration.Create("http://api2.stormancer.com:8080", AccountId, Application);
             config.ServerEndpoints = new System.Collections.Generic.List<string>();
-            config.ServerEndpoints.Add("http://api2.stormancer.com:8080");
 
 
             _client = new Client(config);

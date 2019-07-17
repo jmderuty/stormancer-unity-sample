@@ -1,7 +1,4 @@
-﻿using UnityEngine;
-using System.Collections;
-using Stormancer;
-
+﻿
 namespace Stormancer
 {
     public class IClock

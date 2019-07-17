@@ -15,7 +15,7 @@ namespace Stormancer.Common.Helpers
         public AsyncLock()
         {
             m_semaphore = new AsyncSemaphore(1);
-            m_releaser = TaskHelper.FromResult(new Releaser(this));
+            m_releaser = Task.FromResult(new Releaser(this));
         }
 
         public async Task<Releaser> LockAsync()

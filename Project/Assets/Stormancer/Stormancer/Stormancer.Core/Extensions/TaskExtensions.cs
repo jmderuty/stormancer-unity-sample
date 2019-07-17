@@ -1,8 +1,5 @@
-﻿using Stormancer;
-using System;
-using UnityEngine;
+﻿using System;
 using System.Threading.Tasks;
-using System.Threading;
 
 namespace Stormancer
 {
@@ -16,7 +13,7 @@ namespace Stormancer
             }
             catch (Exception ex)
             {
-                return TaskHelper.FromException(ex);
+                return Task.FromException(ex);
             }
         }
 
@@ -28,7 +25,7 @@ namespace Stormancer
             }
             catch (Exception ex)
             {
-                return TaskHelper.FromException<TResult>(ex);
+                return Task.FromException<TResult>(ex);
             }
         }
 
@@ -40,7 +37,7 @@ namespace Stormancer
             }
             catch (Exception ex)
             {
-                return TaskHelper.FromException(ex);
+                return Task.FromException(ex);
             }
         }
 
@@ -52,7 +49,7 @@ namespace Stormancer
             }
             catch (Exception ex)
             {
-                return TaskHelper.FromException<TResult>(ex);
+                return Task.FromException<TResult>(ex);
             }
         }
     }

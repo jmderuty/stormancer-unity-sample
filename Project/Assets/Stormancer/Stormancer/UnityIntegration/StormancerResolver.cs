@@ -49,22 +49,15 @@ namespace Stormancer
         public bool TryResolve<T>(out T dependency)
         {
             Registration registration;
-            if(_registrations.TryGetValue(typeof(T), out registration))
+            if (_registrations.TryGetValue(typeof(T), out registration)) 
             {
                 var factory = registration.factory;
                 if (registration.singleInstance)
                 {
-                    if (registration.instance == null)
+
+                    if (registration.instance == null && factory != null)
                     {
-                        if (factory != null)
-                        {
-                            registration.instance = factory(this);
-                        }
-                        else
-                        {
-                            dependency = default(T);
-                            return false;
-                        }
+                        registration.instance = factory(this);
                     }
 
                     dependency = (T)registration.instance;

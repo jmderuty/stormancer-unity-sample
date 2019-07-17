@@ -1,11 +1,14 @@
-﻿using Http;
-using Stormancer.Client45.Infrastructure;
+﻿using Stormancer.Client45.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Stormancer.Diagnostics;
+using System.Net.Http;
+using System.Linq;
+using System.IO;
+using System.Text;
 
 namespace Stormancer
 {
@@ -15,7 +18,7 @@ namespace Stormancer
         private const string CreateTokenUri = "{0}/{1}/scenes/{2}/token";
         private ILogger _logger;
         private ITokenHandler _tokenHandler;
-       
+
         public ApiClient(ClientConfiguration configuration, ILogger logger, ITokenHandler tokenHandler)
         {
             _config = configuration;
@@ -29,15 +32,15 @@ namespace Stormancer
             _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", "Scene endpoint data", $"{accountId};{applicationName};{sceneId}");
 
             List<string> errors = new List<string>();
-            if(baseUris.Count == 0)
+            if (baseUris.Count == 0)
             {
                 throw new ArgumentException("No server endpoints found in configuration");
             }
-            if(_config.EndpointSelectionMode == EndpointSelectionMode.FALLBACK)
+            if (_config.EndpointSelectionMode == EndpointSelectionMode.FALLBACK)
             {
                 return await GetSceneEndpointImpl(baseUris, errors, accountId, applicationName, sceneId, cancellationToken);
             }
-            else if(_config.EndpointSelectionMode == EndpointSelectionMode.RANDOM)
+            else if (_config.EndpointSelectionMode == EndpointSelectionMode.RANDOM)
             {
                 List<string> baseUris2 = new List<string>();
                 Random rand = new Random();
@@ -53,100 +56,116 @@ namespace Stormancer
 
         }
 
+        private HttpClient CreateHttpClient()
+        {
+            var result = new HttpClient();
+
+            result.BaseAddress = _config.GetApiEndpoint();
+            result.DefaultRequestHeaders.Add("x-version", "3");
+            result.DefaultRequestHeaders.Add("Accept", "application/json");
+
+            return result;
+        }
+
         private async Task<SceneEndpoint> GetSceneEndpointImpl(List<string> endpoints, List<string> errors, string accountId, string applicationName, string sceneId, CancellationToken cancellationToken)
         {
-            if(endpoints.Count == 0)
+            using (var client = CreateHttpClient())
             {
-                string errorMessage = "";
-                foreach (var error in errors)
+
+                if (endpoints.Count == 0)
                 {
-                    errorMessage += error;
-                }
-                throw new InvalidOperationException("Failed to connect to the configured server endpoints : " + errorMessage);
-            }
-            string baseUrl = endpoints[0];
-            endpoints.RemoveAt(0);
-            Request request = CreateRequest("POST", accountId, applicationName, sceneId, _logger);
-            request.Text = " ";
-            IResponse response;
-            try
-            {
-                response = await request.Send(_logger);
-            }
-            catch (Exception ex)
-            {
-            	var message = "Can't reach the server endpoint. " + baseUrl;
-                _logger.Log(Diagnostics.LogLevel.Warn, "APIClient", message, ex.Message);
-                errors.Add($"[{message}:{ex.Message}]");
-                return await GetSceneEndpointImpl(endpoints, errors, accountId, applicationName, sceneId, cancellationToken);
-            }
-            try
-            {
-                var statusCode = request.response.status;
-                var message = $"HTTP request on '{baseUrl}' returned status code {statusCode}";
-                _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", message);
-                if(statusCode >= 200 && statusCode < 300)
-                {
-                    var xVersion = request.response.GetHeader("x-version");
-                    if(xVersion == "2" || xVersion == "3")
+                    string errorMessage = "";
+                    foreach (var error in errors)
                     {
-                        _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", "Get token API version : 2");
-                        return _tokenHandler.GetSceneEndpointInfos(response.ReadAsString());
+                        errorMessage += error;
+                    }
+                    throw new InvalidOperationException("Failed to connect to the configured server endpoints : " + errorMessage);
+                }
+                string baseUrl = endpoints[0];
+                endpoints.RemoveAt(0);
+                var request = CreateRequest("POST", accountId, applicationName, sceneId, _logger);
+                HttpResponseMessage response;
+                try
+                {
+                    response = await client.SendAsync(request);
+                }
+                catch (Exception ex)
+                {
+                    var message = "Can't reach the server endpoint. " + baseUrl;
+                    _logger.Log(Diagnostics.LogLevel.Warn, "APIClient", message, ex.Message);
+                    errors.Add($"[{message}:{ex.Message}]");
+                    return await GetSceneEndpointImpl(endpoints, errors, accountId, applicationName, sceneId, cancellationToken);
+                }
+                try
+                {
+                    var statusCode = (int)response.StatusCode;
+                    var message = $"HTTP request on '{baseUrl}' returned status code {statusCode}";
+                    _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", message);
+                    var responseString = await response.Content.ReadAsStringAsync();
+                    if (statusCode >= 200 && statusCode < 300)
+                    {
+                        if(response.Headers.TryGetValues("x-version", out var values))
+                        {
+                            var xVersion = values.First();
+                            if (xVersion == "2" || xVersion == "3")
+                            {
+                                _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", "Get token API version : 2");
+                                return _tokenHandler.GetSceneEndpointInfos(responseString);
+                            }
+                        }
+                        _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", "Get token API version : 1");
+                        return _tokenHandler.DecodeToken(responseString);
                     }
                     else
                     {
-
-                        _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", "Get token API version : 1");
-                        return _tokenHandler.DecodeToken(response.ReadAsString());
+                        errors.Add($"[{message} : {statusCode}]");
+                        return await GetSceneEndpointImpl(endpoints, errors, accountId, applicationName, sceneId, cancellationToken);
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    errors.Add($"[{message} : {statusCode}]");
-                    return await GetSceneEndpointImpl(endpoints, errors, accountId, applicationName, sceneId, cancellationToken);
+                    throw new InvalidOperationException("Can't get the scene endpoint response: " + ex.Message);
                 }
             }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Can't get the scene endpoint response: " + ex.Message);
-            }
 
         }
 
-        private Request CreateRequest(string method, string accountId, string applicationName, string sceneId, ILogger logger)
+        private HttpRequestMessage CreateRequest(string method, string accountId, string applicationName, string sceneId, ILogger logger)
         {
             var uri = new Uri(_config.GetApiEndpoint(), string.Format(CreateTokenUri, accountId, applicationName, sceneId));
-            var request = new Request(method, uri.AbsoluteUri);
-            request.AddHeader("Content-Type", "application/msgpack");
-            request.AddHeader("Accept", "application/json");
-            request.AddHeader("x-version", "1.0.0");
-            logger.Trace("APIClient", "Sending endpoint request to remote server : "+ uri);
-            return request;
+            var message = new HttpRequestMessage(new HttpMethod(method), uri.AbsoluteUri);
+            message.Content = new StringContent("", Encoding.UTF8, "application/msgpack");
+            logger.Trace("APIClient", "Sending endpoint request to remote server : " + uri);
+            return message;
         }
 
-        private async Task<IResponse> SendWithRetry(Func<Request> requestFactory, int firstTry, int secondTry)
+        private async Task<HttpResponseMessage> SendWithRetry(Func<HttpRequestMessage> requestFactory, int firstTry, int secondTry)
         {
+            using (var client = CreateHttpClient())
+            {
 
-            var request = requestFactory();
-            try
-            {
-                var firstTryCts = new CancellationTokenSource(firstTry);
-                return await request.Send(_logger, firstTryCts.Token);
-            }
-            catch (Exception)
-            {
-                _logger.Debug("APIClient", "First call to API timed out.");
+
+                var request = requestFactory();
                 try
                 {
-                    var secondTryCts = new CancellationTokenSource(secondTry);
-                    return await request.Send(_logger, secondTryCts.Token);
+                    var firstTryCts = new CancellationTokenSource(firstTry);
+                    return await client.SendAsync(request, firstTryCts.Token);
                 }
                 catch (Exception)
                 {
-                    _logger.Debug("APIClient", "Second call to API timed out.");
-                    var thirdTryCts = new CancellationTokenSource(secondTry *2);
+                    _logger.Debug("APIClient", "First call to API timed out.");
+                    try
+                    {
+                        var secondTryCts = new CancellationTokenSource(secondTry);
+                        return await client.SendAsync(request, secondTryCts.Token);
+                    }
+                    catch (Exception)
+                    {
+                        _logger.Debug("APIClient", "Second call to API timed out.");
+                        var thirdTryCts = new CancellationTokenSource(secondTry * 2);
 
-                    return await request.Send(_logger, thirdTryCts.Token);
+                        return await client.SendAsync(request, thirdTryCts.Token);
+                    }
                 }
             }
         }
@@ -154,21 +173,21 @@ namespace Stormancer
         public async Task<Federation> GetFederation(List<string> endpoints, CancellationToken cancellationToken)
         {
             var errors = new List<string>();
-            if(endpoints.Count == 0)
+            if (endpoints.Count == 0)
             {
                 throw new ArgumentException("No server endpoints found in configuration.");
             }
 
-            if(_config.EndpointSelectionMode == EndpointSelectionMode.FALLBACK)
+            if (_config.EndpointSelectionMode == EndpointSelectionMode.FALLBACK)
             {
                 var federation = await GetFederationImpl(endpoints, errors, cancellationToken);
                 return federation;
             }
-            else if(_config.EndpointSelectionMode == EndpointSelectionMode.RANDOM)
+            else if (_config.EndpointSelectionMode == EndpointSelectionMode.RANDOM)
             {
                 List<string> baseUris = new List<string>();
                 Random rand = new Random();
-                while(endpoints.Count > 0)
+                while (endpoints.Count > 0)
                 {
                     int index = rand.Next(endpoints.Count);
                     baseUris.Add(endpoints[index]);
@@ -181,54 +200,58 @@ namespace Stormancer
 
         private async Task<Federation> GetFederationImpl(List<string> endpoints, List<string> errors, CancellationToken cancellationToken)
         {
-            if(endpoints.Count == 0)
+            using (var client = CreateHttpClient())
             {
-                string errorMsg = "";
-                foreach (var error in errors)
-                {
-                    errorMsg += error;
-                }
-                throw new InvalidOperationException("Failed to connect to the configured server endpoints : "+errorMsg);
-            }
 
-            var baseUri = endpoints[0];
-            endpoints.RemoveAt(0);
-            var request = new Request("GET", baseUri+"/_federation");
-            request.AddHeader("Content-Type", "application/msgpack");
-            request.AddHeader("Accept", "application/json");
-            request.AddHeader("x-version", "1.0.0");
-            IResponse response;
-            try
-            {
-                response = await request.Send(_logger);
-            }
-            catch (Exception ex)
-            {
-                var msgStr = $"Can't reach the server endpoint. {baseUri}";
-                _logger.Log(Diagnostics.LogLevel.Warn, "APIClient", msgStr, ex.Message);
-                errors.Add($"[{msgStr} : {ex.Message}]");
-                return await GetFederationImpl(endpoints, errors, cancellationToken);
-            }
-            try
-            {
-                var statusCode = request.response.status;
-                var msgStr = $"HTTP request on '{baseUri}' returned status code {statusCode}";
-                _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", msgStr);
-                _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", response.ReadAsString());
-                if(statusCode >= 200 && statusCode < 300)
+                if (endpoints.Count == 0)
                 {
-                    _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", "Get token API version 1");
-                    return ReadFederationFromJson(response.ReadAsString());
+                    string errorMsg = "";
+                    foreach (var error in errors)
+                    {
+                        errorMsg += error;
+                    }
+                    throw new InvalidOperationException("Failed to connect to the configured server endpoints : " + errorMsg);
                 }
-                else
+
+                var baseUri = endpoints[0];
+                endpoints.RemoveAt(0);
+                var request = new HttpRequestMessage(new HttpMethod("GET"), baseUri + "/_federation");
+                request.Headers.Add("Accept", "application/json");
+                request.Headers.Add("x-version", "1.0.0");
+                HttpResponseMessage response;
+                try
                 {
-                    errors.Add($"[{msgStr} : {statusCode}]");
+                    response = await client.SendAsync(request);
+                }
+                catch (Exception ex)
+                {
+                    var msgStr = $"Can't reach the server endpoint. {baseUri}";
+                    _logger.Log(Diagnostics.LogLevel.Warn, "APIClient", msgStr, ex.Message);
+                    errors.Add($"[{msgStr} : {ex.Message}]");
                     return await GetFederationImpl(endpoints, errors, cancellationToken);
                 }
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Can't get the scene endpoint response: " + ex.Message);
+                try
+                {
+                    var statusCode = (int)response.StatusCode;
+                    var msgStr = $"HTTP request on '{baseUri}' returned status code {statusCode}";
+                    var responseStr = await response.Content.ReadAsStringAsync();
+                    _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", msgStr);
+                    _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", responseStr);
+                    if (statusCode >= 200 && statusCode < 300)
+                    {
+                        _logger.Log(Diagnostics.LogLevel.Trace, "APIClient", "Get token API version 1");
+                        return ReadFederationFromJson(responseStr);
+                    }
+                    else
+                    {
+                        errors.Add($"[{msgStr} : {statusCode}]");
+                        return await GetFederationImpl(endpoints, errors, cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Can't get the scene endpoint response: " + ex.Message);
+                }
             }
         }
 

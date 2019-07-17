@@ -1,5 +1,6 @@
 ﻿using Stormancer.Client45.Infrastructure;
 using Stormancer.Diagnostics;
+using Stormancer.Infrastructure;
 using Stormancer.Networking;
 using Stormancer.Plugins;
 using System;
@@ -125,9 +126,9 @@ namespace Stormancer
         /// <param name="account">Id of the target account</param>
         /// <param name="application">Name of the application the client will connect to.</param>
         /// <returns>A ClientConfiguration instance that enables connection to the application. The configuration can be modified afterwards.</returns>
-        public static ClientConfiguration ForAccount(string account, string application)
+        public static ClientConfiguration Create(string endpoint, string account, string application)
         {
-            return new ClientConfiguration { Account = account, Application = application, IsLocalDev = true };
+            return new ClientConfiguration { ServerEndpoints = new List<string> { endpoint }, Account = account, Application = application, IsLocalDev = true };
         }
 
         internal Dictionary<string, string> _metadata = new Dictionary<string, string>();
@@ -144,10 +145,10 @@ namespace Stormancer
             TransportFactory = DefaultTransportFactory;
             //Transport = new WebSocketClientTransport(NullLogger.Instance);        
 
-            Serializers = new List<ISerializer> { new MsgPackSerializer(this), new MsgPackMapSerializer(this) };
+            Serializers = new List<ISerializer> { new MsgPackSerializer(), new MsgPackMapSerializer() };
             MaxPeers = 20;
             Plugins = new List<IClientPlugin>();
-            Plugins.Add(new RpcClientPlugin());
+            Plugins.Add(new RpcClientPlugin()); 
 #if UNITY_EDITOR
             Plugins.Add(new StormancerEditorPlugin());
 #endif
@@ -200,21 +201,7 @@ namespace Stormancer
 
         public ILogger Logger { get; set; }
 
-        /// <summary>
-        /// Adds a plugin to the client.
-        /// </summary>
-        /// <param name="plugin">The plugin instance to add.</param>
-        /// <remarks>
-        /// Plugins enable developpers to plug custom code in the Stormancer client's extensibility points. Possible uses include: custom high level protocols, logger or analyzers.
-        /// 
-        /// </remarks>
-        void AddPlugin(IClientPlugin plugin)
-        {
-
-            Plugins.Add(plugin);
-        }
-
-        internal List<IClientPlugin> Plugins { get; private set; }
+        public List<IClientPlugin> Plugins { get; private set; }
 
         /// <summary>
         /// The scheduler used by the client to run the transport and other repeated tasks.

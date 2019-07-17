@@ -18,7 +18,7 @@ namespace System.Threading.Tasks
         public static Task ToVoidTask<T>(this IObservable<T> source, CancellationToken token)
         {
             return SubscribeAndCleanUp<T, Unit>(source,
-                (IObservable<T> obs,TaskCompletionSource<Unit>  tcs) => obs.Subscribe(
+                (IObservable<T> obs, TaskCompletionSource<Unit> tcs) => obs.Subscribe(
                     (T t) => { },
                     (Exception ex) => tcs.SetException(ex),
                     () => tcs.SetResult(Unit.Default)), token);
@@ -28,12 +28,12 @@ namespace System.Threading.Tasks
             IObservable<TData> observable,
             Func<IObservable<TData>, TaskCompletionSource<TResult>, IDisposable> subscriptionMethod, CancellationToken token)
         {
-         
+
             var tcs = new TaskCompletionSource<TResult>();
 
             var subscription = subscriptionMethod(observable, tcs);
 
-            IDisposable tokenRegistration=null;
+            IDisposable tokenRegistration = null;
 
             token.Register(() =>
             {

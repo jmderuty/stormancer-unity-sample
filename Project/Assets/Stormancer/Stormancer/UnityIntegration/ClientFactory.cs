@@ -39,7 +39,7 @@ namespace Stormancer
                 {
                     config.SynchronizationContext = _mainSynchronizationContext;
                 }
-                client = Client.Create(config);
+                client = new Client(config);
                 _clients.TryAdd(clientId, client);
             }
             return client;

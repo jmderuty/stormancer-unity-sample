@@ -1,211 +1,342 @@
-using GeneratedSerializers;
 using MsgPack;
 using MsgPack.Serialization;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
-// >To avoid compilation error when no generated serializer
-// have beed created
-namespace GeneratedSerializers
-{
-
-}
-
-namespace Stormancer.Client45.Infrastructure
+namespace Stormancer.Infrastructure
 {
     /// <summary>
     /// Serializer based on MsgPack.
     /// </summary>
     public class MsgPackSerializer : ISerializer
     {
-        public const string NAME = "msgpack/array";
+        internal static ISerializer Instance = new MsgPackSerializer();
 
         private readonly IEnumerable<IMsgPackSerializationPlugin> _plugins;
 
-        private Dictionary<RuntimeTypeHandle, Func<SerializationContext, MessagePackSerializer>> _serializersFactory = new Dictionary<RuntimeTypeHandle, Func<SerializationContext, MessagePackSerializer>>();
-        
-        public void RegisterSerializerFactory<T>(Func<SerializationContext, MessagePackSerializer<T>> factory)
+        private ConcurrentDictionary<Type, object> _serializersCache = new ConcurrentDictionary<Type, object>();
+
+        /// <summary>
+        /// Creates a new MsgPackSerializer object
+        /// </summary>
+        public MsgPackSerializer() : this(null) { }
+
+        /// <summary>
+        /// Creates a new MsgPackSerializer object with plugins
+        /// </summary>
+        /// <param name="plugins">A collection of serialization plugins</param>
+        public MsgPackSerializer(IEnumerable<IMsgPackSerializationPlugin> plugins)
         {
-            _serializersFactory[typeof(T).TypeHandle] = (ctx) => factory(ctx);
-        }
-
-        private readonly ClientConfiguration _config;
-        private readonly Lazy<SerializationContext> _serializationContextLazy;
-
-        public MsgPackSerializer(ClientConfiguration config) : this(config, null) { }
-        public MsgPackSerializer(ClientConfiguration config, IEnumerable<IMsgPackSerializationPlugin> plugins)
-        {
-            _config = config;
-
             if (plugins == null)
             {
                 plugins = Enumerable.Empty<IMsgPackSerializationPlugin>();
             }
 
             this._plugins = plugins;
-
-            _serializationContextLazy = new Lazy<SerializationContext>(CreateSerializationContext);
-
-            RegisterSerializerFactories();
         }
+
+        /// <summary>
+        /// Serializes an object into a stream
+        /// </summary>
+        /// <typeparam name="T">The Type of the object to deserialize</typeparam>
+        /// <param name="data">An object to serialize</param>
+        /// <param name="stream">A Stream into which the object will be serialized</param>
+        /// <remarks>
+        /// The method doesn't close the stream
+        /// </remarks>
         public void Serialize<T>(T data, System.IO.Stream stream)
         {
-            //var serializer = (MessagePackSerializer<T>)_serializersCache.GetOrAdd(typeof(T), k => MessagePackSerializer.Get<T>(GetSerializationContext()));
-            var serializer =MessagePackSerializer.Get<T>(SerializationContext);
+            var ctx = GetSerializationContext();
+            var serializer = ctx.GetSerializer<T>();// (MsgPack.Serialization.MessagePackSerializer<T>)_serializersCache.GetOrAdd(typeof(T),k=> MsgPack.Serialization.MessagePackSerializer.Get<T>(GetSerializationContext()));
 
-            serializer.PackTo(Packer.Create(stream, false), data);
+
+            serializer.PackTo(Packer.Create(stream, PackerCompatibilityOptions.None, false), data);
         }
 
+        /// <summary>
+        /// Deserialize an instance of T from a stream.
+        /// </summary>
+        /// <typeparam name="T">The type to deserialize into</typeparam>
+        /// <param name="stream">A binary stream the object will be deserialized from</param>
+        /// <remarks>
+        /// The method don't close the stream
+        /// </remarks>
+        /// <returns>An instance of T deserialized from the stream</returns>
         public T Deserialize<T>(System.IO.Stream stream)
         {
-
-            //var serializer = (MessagePackSerializer<T>)_serializersCache.GetOrAdd(typeof(T), k => MessagePackSerializer.Get<T>(GetSerializationContext()));
-            var serializer = MessagePackSerializer.Get<T>(SerializationContext);
+            var ctx = GetSerializationContext();
+            var serializer = ctx.GetSerializer<T>();// (MsgPack.Serialization.MessagePackSerializer<T>)_serializersCache.GetOrAdd(typeof(T),k=> MsgPack.Serialization.MessagePackSerializer.Get<T>(GetSerializationContext()));
 
             var unpacker = Unpacker.Create(stream, false);
             unpacker.Read();
             return serializer.UnpackFrom(unpacker);
         }
 
-        private SerializationContext SerializationContext
+        /// <summary>
+        /// Builds the msgpack serialization context for this serializer.
+        /// </summary>
+        /// <returns>
+        /// The new serialization context.
+        /// </returns>
+        protected virtual SerializationContext GetSerializationContext()
         {
-            get
+            if (System.Threading.Interlocked.CompareExchange(ref _initialized, 1, 0) == 0)
             {
-                return _serializationContextLazy.Value;
-            }
-        }
+                InitializeSerializationContext(_ctx);
 
-        private void RegisterSerializerFactories()
+            }
+            return _ctx;
+        }
+        private static int _initialized = 0;
+        private static MsgPack.Serialization.SerializationContext _ctx = new MsgPack.Serialization.SerializationContext();
+
+        protected virtual void InitializeSerializationContext(SerializationContext ctx)
         {
+
+
+            ctx.Serializers.Register(new MsgPackLambdaTypeSerializer<JToken>(packJToken, unpackJToken, ctx));
+            ctx.Serializers.Register(new MsgPackLambdaTypeSerializer<JArray>(packJArray, unpackJArray, ctx));
+            ctx.Serializers.Register(new MsgPackLambdaTypeSerializer<JObject>(packJObject, unpackJObject, ctx));
+            ctx.Serializers.Register(new MsgPackLambdaTypeSerializer<JValue>(packJValue, unpackJValue, ctx));
+
             foreach (var plugin in _plugins)
             {
-                plugin.RegisterSerializerFactories(this);
+                plugin.OnCreatingSerializationContext(ctx);
             }
-
-            #region GeneratedSerializers	
-			RegisterSerializerFactory(ctx => new Stormancer_Cluster_Application_ConnectionDataSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_ConnectivityCandidateSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Core_Infrastructure_Messages_SystemResponseSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Dto_ConnectionResultSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Dto_ConnectToSceneMsgSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Dto_EmptySerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Dto_RouteDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Dto_SceneInfosDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Dto_SceneInfosRequestDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_EndpointCandidateSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_EndpointCandidateTypeSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_OpenRelayParametersSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_OpenTunnelResultSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_P2PConnectToSceneMessageSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_P2PSessionSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_AuthParametersSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ComparisonOperatorSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_EndGameDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_FieldFilterSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameFinderParametersSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameFinderRequestSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameFinderResponseDTOSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameResultSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_GameSessionResultSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LeaderboardOrderingSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LeaderboardQuerySerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LeaderboardRankingSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LeaderboardResultSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_LoginResultSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PartyRequestDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PartySettingsDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PartyUserDataSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PartyUserDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PartyUserStatusSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerDTOSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerProfileSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_PlayerUpdateSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ProfileSummarySerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ReadinessSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ReadyVerificationRequestDtoSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ScoreFilterSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ScoreRecordSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_ServerStartedMessageSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_SetResultSerializer(ctx));
-			RegisterSerializerFactory(ctx => new Stormancer_Plugins_TeamDTOSerializer(ctx));
-			RegisterSerializerFactory(ctx => new System_Collections_Generic_KeyValuePair_2_System_String_System_Int32_Serializer(ctx));
-			RegisterSerializerFactory(ctx => new System_Collections_Generic_KeyValuePair_2_System_String_System_String_Serializer(ctx));
-			RegisterSerializerFactory(ctx => new System_Collections_Generic_KeyValuePair_2_System_String_System_UInt16_Serializer(ctx));
-            #endregion GeneratedSerializers
         }
 
-        protected virtual SerializationContext CreateSerializationContext()
-        {
-            var context = new SerializationContext();
+        /// <summary>
+        /// Name of the serializer
+        /// </summary>
+        /// <remarks>
+        /// Returns 'msgpack/array'
+        /// </remarks>
+        public virtual string Name {
+            get { return "msgpack/array"; }
+        }
 
-            context.ResolveSerializer += (sender, args) =>
+        private void packJArray(Packer packer, JArray array, SerializationContext ctx)
+        {
+            packer.PackArray(array, ctx);
+        }
+
+        private void packJToken(Packer packer, JToken token, SerializationContext ctx)
+        {
+            if (token is JValue)
             {
-                Func<SerializationContext, MessagePackSerializer> factory;
-                if(_serializersFactory.TryGetValue(args.TargetType.TypeHandle, out factory))
+                packJValue(packer, (JValue)token, ctx);
+            }
+            else if (token is JArray)
+            {
+                packJArray(packer, (JArray)token, ctx);
+            }
+            else if (token is JObject)
+            {
+                packJObject(packer, (JObject)token, ctx);
+            }
+        }
+
+        private static void packJValue(Packer packer, JValue value, SerializationContext ctx)
+        {
+            switch (value.Type)
+            {
+                case JTokenType.Null:
+                    packer.PackNull();
+                    break;
+                //case JTokenType.Date:
+                //    packer.Pack(((DateTime)value.Value).Ticks);
+                //    break;
+                //case JTokenType.String:
+                //    packer.PackString((string)value.Value);
+                //    break;
+                //case JTokenType.Float:
+
+                //    break;
+                default:
+                    packer.Pack(value.Value);
+                    break;
+
+            }
+        }
+
+        private void packJObject(Packer packer, JObject obj, SerializationContext ctx)
+        {
+            packer.PackMap(obj, ctx);
+        }
+
+        private JToken unpackJToken(Unpacker unpacker, SerializationContext ctx)
+        {
+            if (unpacker.IsArrayHeader)
+            {
+                return unpackJArray(unpacker, ctx);
+            }
+            else if (unpacker.IsMapHeader)
+            {
+                return unpackJObject(unpacker, ctx);
+            }
+            else
+            {
+
+                return unpackJValue(unpacker, ctx);
+            }
+        }
+
+        private JValue unpackJValue(Unpacker unpacker, SerializationContext ctx)
+        {
+            var data = unpacker.LastReadData;
+            if (data.IsTypeOf<string>() ?? false)
+            {
+                return new JValue(data.AsString());
+            }
+            else if (data.IsTypeOf<long>() ?? false)
+            {
+                return new JValue(data.AsInt64());
+            }
+            else if (data.IsTypeOf<float>() ?? false)
+            {
+                return new JValue(data.AsSingle());
+            }
+            else if (data.IsTypeOf<double>() ?? false)
+            {
+                return new JValue(data.AsDouble());
+            }
+            else if (data.IsNil)
+            {
+                return JValue.CreateNull();
+            }
+            else if (data.IsTypeOf<bool>() ?? false)
+            {
+                return new JValue(data.AsBoolean());
+            }
+            else if (data.IsTypeOf<byte[]>() ?? false)
+            {
+                return new JValue((byte[])data.ToObject());
+            }
+            else if (data.IsTypeOf<MessagePackExtendedTypeObject>() ?? false)
+            {
+                var ext = data.AsMessagePackExtendedTypeObject();
+                if (ext.TypeCode == 0xff)
                 {
-                    args.SetSerializer(args.TargetType, factory(args.Context));
-                    return;
+                    return new JValue(MsgPack.Timestamp.Decode(ext).ToDateTime());
                 }
-
-                _config.Logger.Log(Diagnostics.LogLevel.Warn, "MsgPackSerializer", "Requesting a serializer for unregistered type " + args.TargetType.FullName + ". A serializer will be generated by relection. This will not work on AOT platforms");
-            };    
-
-            foreach (var plugin in _plugins)
-            {
-                plugin.OnCreatingSerializationContext(context);
             }
-            return context;
+            throw new NotSupportedException($"Couldn't unpack {data} into JValue");
         }
 
-        public virtual string Name
+        private JArray unpackJArray(Unpacker unpacker, SerializationContext ctx)
         {
-            get { return NAME; }
+            //backward compatibility
+            if (unpacker.LastReadData.IsTypeOf<string>() ?? false)
+            {
+                return (JArray)JToken.Parse(unpacker.LastReadData.AsString());
+            }
+
+            var array = new JArray();
+            long length = unpacker.ItemsCount;
+
+            for (int i = 0; i < length; i++)
+            {
+                unpacker.Read();
+                JToken token = unpacker.Unpack<JToken>(ctx);
+                if (token == null)
+                {
+                    token = JValue.CreateNull();
+                }
+                array.Add(token);
+            }
+            return array;
         }
 
+        private JObject unpackJObject(Unpacker unpacker, SerializationContext ctx)
+        {
+            //backward compatibility
+            if (unpacker.LastReadData.IsTypeOf<string>() ?? false)
+            {
+                return (JObject)JToken.Parse(unpacker.LastReadData.AsString());
+            }
+
+            var map = new JObject();
+            long length = unpacker.ItemsCount;
+
+            //var subtree = data.ReadSubtree();
+            //var length = subtree.LastReadData.AsInt64();
+
+            for (long i = 0; i < length; i++)
+            {
+                unpacker.Read();
+                string key = unpacker.LastReadData.AsString();
+
+                unpacker.Read();
+                JToken token = unpacker.Unpack<JToken>(ctx);
+                if (token == null)
+                {
+                    token = JValue.CreateNull();
+                }
+                map.Add(key, token);
+            }
+
+            return map;
+        }
 
     }
 
-    public class MsgPackLambdaTypeSerializer<T> 
-        : MessagePackSerializer<T>
+
+    /// <summary>
+    /// A custom msgPack serializer that allows to declare its serialization logic using lambda methods
+    /// </summary>
+    /// <typeparam name="T">The type that this serializer will serialize/deserialize</typeparam>
+    public class MsgPackLambdaTypeSerializer<T> : MessagePackSerializer<T>
+    {
+        private readonly Action<MsgPack.Packer, T, SerializationContext> _pack;
+        private readonly Func<MsgPack.Unpacker, SerializationContext, T> _unpack;
+
+        /// <summary>
+        /// Creates a MsgPackLambdaTypeSerializer instance
+        /// </summary>
+        /// <param name="pack">An action that is executed when an instance of T has to be serialized</param>
+        /// <param name="unpack">A function that is executed when an instance of T has to be deserialized</param>
+        /// <param name="ctx">The serialization context</param>
+        public MsgPackLambdaTypeSerializer(Action<MsgPack.Packer, T, SerializationContext> pack, Func<MsgPack.Unpacker, SerializationContext, T> unpack, SerializationContext ctx)
+            : base(ctx)
         {
-        private readonly Action<MsgPack.Packer, T> _pack;
-        private readonly Func<MsgPack.Unpacker, T> _unpack;
-        public MsgPackLambdaTypeSerializer(Action<MsgPack.Packer, T> pack, Func<MsgPack.Unpacker, T> unpack, SerializationContext ctx)
-#if UNITY_IOS && false
-            :base(typeof(T), ctx.CompatibilityOptions.PackerCompatibilityOptions)
-#else
-            : base(ctx, ctx.CompatibilityOptions.PackerCompatibilityOptions)
-#endif
-            {
             _pack = pack;
             _unpack = unpack;
         }
-#if UNITY_IOS && false
-        protected internal override void PackToCore(Packer packer, object objectTree)
-#else
+
+        /// <summary>
+        /// Serializes the target object
+        /// </summary>
+        /// <param name="packer"></param>
+        /// <param name="objectTree"></param>
         protected internal override void PackToCore(MsgPack.Packer packer, T objectTree)
-#endif
         {
-            _pack(packer, (T)objectTree);
+            _pack(packer, objectTree, this.OwnerContext);
         }
 
-#if UNITY_IOS && false
-        protected internal override object UnpackFromCore(MsgPack.Unpacker unpacker)
-#else
+        /// <summary>
+        /// Deserializes the target object
+        /// </summary>
+        /// <param name="unpacker"></param>
+        /// <returns></returns>
         protected internal override T UnpackFromCore(MsgPack.Unpacker unpacker)
-#endif
         {
-            return _unpack(unpacker);
+            return _unpack(unpacker, this.OwnerContext);
         }
     }
 
+    /// <summary>
+    /// Declares a plugin that can customize the msgpack serialization process
+    /// </summary>
     public interface IMsgPackSerializationPlugin
     {
+        /// <summary>
+        /// Registers custom serializers into the msgpack serializer
+        /// </summary>
+        /// <param name="ctx">A SerializationContext instance that allows the plugin to register custom serialization logic</param>
         void OnCreatingSerializationContext(SerializationContext ctx);
-        void RegisterSerializerFactories(MsgPackSerializer msgPackSerializer);
     }
 
 

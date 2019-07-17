@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Stormancer.Core;
-using UniRx;
 using System.Collections.Generic;
 using System.Threading;
 using Stormancer.Diagnostics;
@@ -33,7 +32,8 @@ namespace Stormancer.Plugins
 
         private void RaiseGameFound(GameFinderResponse response)
         {
-            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
+            synchronizationContext.SafePost(() =>
                 {
                     try
                     {
@@ -48,7 +48,8 @@ namespace Stormancer.Plugins
 
         private void RaiseFindGameRequestFailed(string reason)
         {
-            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
+            synchronizationContext.SafePost(() =>
             {
                 try
                 {
@@ -63,7 +64,8 @@ namespace Stormancer.Plugins
 
         private void RaiseGameFinderStatusUpdated(GameFinderStatus status)
         {
-            _scene.DependencyResolver.Resolve<SynchronizationContext>().SafePost(() =>
+            var synchronizationContext = _scene.DependencyResolver.Resolve<SynchronizationContext>();
+            synchronizationContext.SafePost(() =>
             {
                 try
                 {
