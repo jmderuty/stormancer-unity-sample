@@ -560,10 +560,6 @@ namespace Stormancer
                 scene.CompleteConnectionInitialization(result);
                 _scenesDispatcher.AddScene(_serverConnection, scene);
                 scene.SetConnectionState(new ConnectionStateCtx(ConnectionState.Connected));
-                if (_pluginCtx.SceneConnected != null)
-                {
-                    _pluginCtx.SceneConnected(scene);
-                }
             }
             catch (Exception ex)
             {
